@@ -29,9 +29,11 @@ package java.util.function;
  *
  * <p>There is no requirement that a new or distinct result be returned each
  * time the supplier is invoked.
- *
+ * 在每次调用这个supplier的方法时，它不要求返回一个新的或者不同的结果
  * <p>This is a <a href="package-summary.html">functional interface</a>
  * whose functional method is {@link #get()}.
+ *
+ * 这个一个函数式接口，它的函数方法是get()
  *
  * @param <T> the type of results supplied by this supplier
  *
