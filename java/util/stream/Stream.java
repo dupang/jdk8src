@@ -207,14 +207,18 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
     /**
      * Returns a stream consisting of the results of applying the given
      * function to the elements of this stream.
-     *
+     * 返回一个stream,它由给定的函数作用于流中的第一个元素后返回的结果组成
      * <p>This is an <a href="package-summary.html#StreamOps">intermediate
      * operation</a>.
+     *
+     * 这是一个中间的操作
      *
      * @param <R> The element type of the new stream
      * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
      *               <a href="package-summary.html#Statelessness">stateless</a>
      *               function to apply to each element
+     *               新stream的元素类型
+     *               一个作用于每一个元素的非干扰的，无状态的函数
      * @return the new stream
      */
     <R> Stream<R> map(Function<? super T, ? extends R> mapper);
@@ -226,9 +230,12 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * <p>This is an <a href="package-summary.html#StreamOps">
      *     intermediate operation</a>.
      *
+     * 返回一个给定函数作用于每一个元素后的结果组成的IntStream,
+     * 这是一个中间的操作
      * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
      *               <a href="package-summary.html#Statelessness">stateless</a>
      *               function to apply to each element
+     *               一个作用于每一个函数的非干扰的，无状态的函数
      * @return the new stream
      */
     IntStream mapToInt(ToIntFunction<? super T> mapper);
@@ -268,23 +275,25 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * {@link java.util.stream.BaseStream#close() closed} after its contents
      * have been placed into this stream.  (If a mapped stream is {@code null}
      * an empty stream is used, instead.)
-     *
+     * 返回一个stream，这个stream由被一个函数作用于每一个元素后产生的匹配的stream的内容替换每一个元素的结果组成，
+     * 每一个匹配的stream在它的内容被放入这个stream后被关闭，如果一个匹配的stream为null,相反的一个空的stream被使用，
      * <p>This is an <a href="package-summary.html#StreamOps">intermediate
      * operation</a>.
-     *
+     *    这是一个中间的操作
      * @apiNote
      * The {@code flatMap()} operation has the effect of applying a one-to-many
      * transformation to the elements of the stream, and then flattening the
      * resulting elements into a new stream.
-     *
+     * 这个操作具有对stream中的每一个元素应用一个到多个转换，然后把结果元素压入新流的作用
      * <p><b>Examples.</b>
-     *
+     * 例如
      * <p>If {@code orders} is a stream of purchase orders, and each purchase
      * order contains a collection of line items, then the following produces a
      * stream containing all the line items in all the orders:
      * <pre>{@code
      *     orders.flatMap(order -> order.getLineItems().stream())...
      * }</pre>
+     *  如果orders是一个购物订单的流，并且每一个购物订单包含一个物品列表，那么下面的代码产生一个包含所有订单里的物品的流
      *
      * <p>If {@code path} is the path to a file, then the following produces a
      * stream of the {@code words} contained in that file:
@@ -292,10 +301,13 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      *     Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8);
      *     Stream<String> words = lines.flatMap(line -> Stream.of(line.split(" +")));
      * }</pre>
+     *
+     * 如果path是一个文件路径，那么下面的代码产生一个包含文件里所有文字的流，
+     *
      * The {@code mapper} function passed to {@code flatMap} splits a line,
      * using a simple regular expression, into an array of words, and then
      * creates a stream of words from that array.
-     *
+     * 那个mapper函数被传递给flatMap，用一个简单的正则表达式去分裂一行成为一个文字数组，然后从数组创建一个文字的流，
      * @param <R> The element type of the new stream
      * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
      *               <a href="package-summary.html#Statelessness">stateless</a>
@@ -312,14 +324,16 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * stream is {@link java.util.stream.BaseStream#close() closed} after its
      * contents have been placed into this stream.  (If a mapped stream is
      * {@code null} an empty stream is used, instead.)
-     *
+     * 返回一个stream，这个stream由被一个函数作用于每一个元素后产生的匹配的stream的内容替换每一个元素的结果组成，
+     * 每一个匹配的stream在它的内容被放入这个stream后被关闭，如果一个匹配的stream为null,相反的一个空的stream被使用，
      * <p>This is an <a href="package-summary.html#StreamOps">intermediate
      * operation</a>.
-     *
+     * 这是一个中间的操作
      * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
      *               <a href="package-summary.html#Statelessness">stateless</a>
      *               function to apply to each element which produces a stream
      *               of new values
+     *               一个非干扰的无状态的函数，这个函数作用于每一个元素然后用新值产生一个新的流
      * @return the new stream
      * @see #flatMap(Function)
      */
@@ -369,14 +383,17 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * Returns a stream consisting of the distinct elements (according to
      * {@link Object#equals(Object)}) of this stream.
      *
+     * 返回一个流，这个新流中由这个流中的唯一的元素(根据Object.equals(Object))组成，
+     *
      * <p>For ordered streams, the selection of distinct elements is stable
      * (for duplicated elements, the element appearing first in the encounter
      * order is preserved.)  For unordered streams, no stability guarantees
      * are made.
-     *
+     * 对一个有序的流，唯一元素的选择复杂度是稳定的,(对于重复的元素，第一次遇到的元素被保留下来)，对于无序的流，
+     * 不保证挑选的稳定性
      * <p>This is a <a href="package-summary.html#StreamOps">stateful
      * intermediate operation</a>.
-     *
+     * 这是一个有状态的中间操作
      * @apiNote
      * Preserving stability for {@code distinct()} in parallel pipelines is
      * relatively expensive (requires that the operation act as a full barrier,
@@ -390,6 +407,9 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * switching to sequential execution with {@link #sequential()} may improve
      * performance.
      *
+     * 对于distinct()在并发管道中保持稳定性是相对昂贵的，(要求这个操作作为一个完全的屏障，和大量的缓冲开销)，并且稳定
+     * 常常不需要。用一个无序的stream源，(例如generate(Supplier)) 或者用unordered()移除有序约束，可能带来很大的执行效率在管道中，
+     * 如果你的情况请允许，如果要求出现顺序的一致性，并且你在并发管道中遇到很低的性能或内存利用率，切换到顺序执行可能会提升性能。
      * @return the new stream
      */
     Stream<T> distinct();
