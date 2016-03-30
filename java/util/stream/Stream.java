@@ -60,6 +60,7 @@ import java.util.function.UnaryOperator;
  *                      .mapToInt(w -> w.getWeight())
  *                      .sum();
  * }</pre>
+ * 一个元素序列支持顺序和并列的聚合操作，下面的例子展示了一个利用Stream和IntStream的聚合操作
  *
  * In this example, {@code widgets} is a {@code Collection<Widget>}.  We create
  * a stream of {@code Widget} objects via {@link Collection#stream Collection.stream()},
@@ -67,10 +68,15 @@ import java.util.function.UnaryOperator;
  * transform it into a stream of {@code int} values representing the weight of
  * each red widget. Then this stream is summed to produce a total weight.
  *
+ * 在这个例子中，widgets是一个Collection<Widget>.我们通过Collection.stream方法创建一个Widget对象stream,
+ * 过滤这个stream,来产生一个只包含红色widgets的流，并且转换它为一个表示红色widget的重量的int的stream,然后这个stream被相加来产生一个总重量，
+ *
  * <p>In addition to {@code Stream}, which is a stream of object references,
  * there are primitive specializations for {@link IntStream}, {@link LongStream},
  * and {@link DoubleStream}, all of which are referred to as "streams" and
  * conform to the characteristics and restrictions described here.
+ *
+ * 除了Stream,一个对象引用的流，还有原始类型的IntStream,LongStream,和DoubleStream,他们都代表一种“streams”,并且符合这里描述的特性和限制，
  *
  * <p>To perform a computation, stream
  * <a href="package-summary.html#StreamOps">operations</a> are composed into a
@@ -84,6 +90,11 @@ import java.util.function.UnaryOperator;
  * terminal operation is initiated, and source elements are consumed only
  * as needed.
  *
+ * 为了执行一个计算，stream操作被组合一个stream pipeline,一个stream pipeline包含一个数据源(可能是数组，列表，函数，I/O管道等等)，
+ * 0或多个中间操作(从一个流转换成另一个流.例如Stream.filter(Predicate)),和一个终结操作(产生一个结果或副作用，例如Stream.Count()或Stream.forEach(Consumer))
+ * Streams是惰性的，只有在终结操作初始化的时候才在源数据上计算操作，并且源数据只在需要的时候被消费
+ *
+ *
  * <p>Collections and streams, while bearing some superficial similarities,
  * have different goals.  Collections are primarily concerned with the efficient
  * management of, and access to, their elements.  By contrast, streams do not
@@ -94,11 +105,18 @@ import java.util.function.UnaryOperator;
  * functionality, the {@link #iterator()} and {@link #spliterator()} operations
  * can be used to perform a controlled traversal.
  *
+ * 列表和流，他们有一个表面上的相似性，但是拥有不同的目的，列表主要关注管理和操作元素的效率，相反的，流没有
+ * 提供方法去直接访问或操作他们的元素，并且只关心描述他们的数据源和一些作用于这些元素的计算操作
+ * 然而，如果提供的流操作不支持想要的功能，那个iterator()和spliterator() 操作可以用来做可控的遍历。
+ *
  * <p>A stream pipeline, like the "widgets" example above, can be viewed as
  * a <em>query</em> on the stream source.  Unless the source was explicitly
  * designed for concurrent modification (such as a {@link ConcurrentHashMap}),
  * unpredictable or erroneous behavior may result from modifying the stream
  * source while it is being queried.
+ *
+ * 一个流的管道，就像上面的"widgets"例子，可以看作是一个对流数据源的查询，除非数据源明确的被设计为并发操作(例如ConcurrentHashMap),
+ * 不可预测或错误的行为在查询时导致对数据源作了修改，
  *
  * <p>Most stream operations accept parameters that describe user-specified
  * behavior, such as the lambda expression {@code w -> w.getWeight()} passed to
@@ -112,11 +130,15 @@ import java.util.function.UnaryOperator;
  * of the stream pipeline).</li>
  * </ul>
  *
+ * 大部分的流操作接受一个描述用户操作行为的参数，例如上面例子传递给mapToInt的lambda表达式w->w.getWeight()，
+ * 为了保存正确的行为，这些行为参数必须非干扰的(他们不会修改流数据)并且在大部分案例中必须无状态的(他们的结果应该不依赖于任何在流管道中的执行中可能会改变的状态)
  * <p>Such parameters are always instances of a
  * <a href="../function/package-summary.html">functional interface</a> such
  * as {@link java.util.function.Function}, and are often lambda expressions or
  * method references.  Unless otherwise specified these parameters must be
  * <em>non-null</em>.
+ *
+ * 这些参数总是函数式接口的实例，并且经常是lambda表达式或者函数引用，除非另有说明这些参数必须不为null
  *
  * <p>A stream should be operated on (invoking an intermediate or terminal stream
  * operation) only once.  This rules out, for example, "forked" streams, where
@@ -126,6 +148,9 @@ import java.util.function.UnaryOperator;
  * operations may return their receiver rather than a new stream object, it may
  * not be possible to detect reuse in all cases.
  *
+ * 一个流应该被操作(调用一个中间操作或终结操作)一次，这些规则排除,例如"forked"流,在这些地方现一个流引入两个或更多的管道，或者同一个流多个遍历，
+ * 一个流的实现可能抛出IllegalStateException，如果他检测到这个流被复用，然而，因为一些流操作可能返回他们的接收者面不是一个新的流对象，它可能不会检测到被复用在所有的例子中。
+ *
  * <p>Streams have a {@link #close()} method and implement {@link AutoCloseable},
  * but nearly all stream instances do not actually need to be closed after use.
  * Generally, only streams whose source is an IO channel (such as those returned
@@ -133,6 +158,10 @@ import java.util.function.UnaryOperator;
  * are backed by collections, arrays, or generating functions, which require no
  * special resource management.  (If a stream does require closing, it can be
  * declared as a resource in a {@code try}-with-resources statement.)
+ *
+ * Streams 有一个close()方法和实现了AutoCloseable,但是几乎所有的流实例实际上不需要在使用之后被克隆，
+ * 一般来说，只有这些源是一个IO通道()的流将需要关闭,大部分的流被列表，数组，或者函数填充，这此流不需要特殊的资源管理，如果一个流确实需要关闭，
+ * 它可以在try-with-resources语句中被声明为一个资源，
  *
  * <p>Stream pipelines may execute either sequentially or in
  * <a href="package-summary.html#Parallelism">parallel</a>.  This
@@ -144,6 +173,8 @@ import java.util.function.UnaryOperator;
  * {@link #sequential()} or {@link #parallel()} methods, and may be queried with
  * the {@link #isParallel()} method.
  *
+ * 流管道可能顺序执行或并行执行，这个执行模式是一个流的参数，流带着一个顺序或并行的初始化选项被创建，(例如,Collection.stream()创建一个顺序的流，而Collection.parallelStream()
+ * 创建一个并行的流，这个执行模式可以通过sequendtial()或者parallel()方法修改，并且可以通过isParallel()方法查询。
  * @param <T> the type of the stream elements
  * @since 1.8
  * @see IntStream
@@ -160,11 +191,16 @@ public interface Stream<T> extends BaseStream<T, Stream<T>> {
      * <p>This is an <a href="package-summary.html#StreamOps">intermediate
      * operation</a>.
      *
+     * 返回一个包含匹配给定断言的元素的stream，
+     * 这是一个中间操作的流操作
+     *
      * @param predicate a <a href="package-summary.html#NonInterference">non-interfering</a>,
      *                  <a href="package-summary.html#Statelessness">stateless</a>
      *                  predicate to apply to each element to determine if it
      *                  should be included
+     *                  一个非干扰的，无状态的断言，作用于每一个元素来决定它是否应该被包含进来
      * @return the new stream
+     *         新的流
      */
     Stream<T> filter(Predicate<? super T> predicate);
 
