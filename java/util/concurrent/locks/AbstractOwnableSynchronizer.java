@@ -69,6 +69,9 @@ public abstract class AbstractOwnableSynchronizer
      * This method does not otherwise impose any synchronization or
      * {@code volatile} field accesses.
      * @param thread the owner thread
+     *
+     * 设置当前线程拥有排它的访问。 一个null 参数表明没有线程拥有访问权限。
+     *  这个方法不另外需要任何两步或volatile字段访问控制
      */
     protected final void setExclusiveOwnerThread(Thread thread) {
         exclusiveOwnerThread = thread;

@@ -43,6 +43,9 @@ import java.util.Collection;
  * {@code synchronized} methods and statements, but with extended
  * capabilities.
  *
+ * 一个可重入的独占锁，在作为隐式的监控锁访问时，与synchronized方法和语句块具有相同的行为和语义。
+ * 但是有其它扩展功能。
+ *
  * <p>A {@code ReentrantLock} is <em>owned</em> by the thread last
  * successfully locking, but not yet unlocking it. A thread invoking
  * {@code lock} will return, successfully acquiring the lock, when
@@ -50,6 +53,10 @@ import java.util.Collection;
  * immediately if the current thread already owns the lock. This can
  * be checked using methods {@link #isHeldByCurrentThread}, and {@link
  * #getHoldCount}.
+ *
+ * 一个ReentrantLock属于最后一个成功锁定并且还没有释放的线程， 当一个锁不属于其它线程时，
+ * 一个线程调用lock方法就会成功的获取锁，方法会立即返回当当前线程已经获取了这个锁，
+ * 可以用isHeldByCurrentThread和getHoldCount方法检查锁的相关状态
  *
  * <p>The constructor for this class accepts an optional
  * <em>fairness</em> parameter.  When set {@code true}, under
@@ -64,14 +71,23 @@ import java.util.Collection;
  * fair lock may obtain it multiple times in succession while other
  * active threads are not progressing and not currently holding the
  * lock.
+ * 这个类的构造函数接受一个可选择的 fairness 参数，当fairness为ture时，竞争锁时，锁会保证
+ * 等待时间最长的线程获取锁。不然的话，锁不会保证特定的访问顺序，使用公平锁的多线程程序可能会有很低
+ * 的整体吞吐量(也就是说程序运行慢，通常很慢)比那些用非公平锁的程序，
+ * 无论如何请记住，锁的公平性不保证线程调试的公平性。因此，使用公平锁时多线程中的一个可能接连多次获取锁，当
+ * 其它活动线程没有运行并且没有保持锁的时候。
+ *
  * Also note that the untimed {@link #tryLock()} method does not
  * honor the fairness setting. It will succeed if the lock
  * is available even if other threads are waiting.
+ *
+ * 同时记住没有时间参数tryLock()方法不管公平与否，如果锁可用时它将成功获取锁，即使其它线程正在等待。
  *
  * <p>It is recommended practice to <em>always</em> immediately
  * follow a call to {@code lock} with a {@code try} block, most
  * typically in a before/after construction such as:
  *
+ * 建议的做法是在调用lock方法后，立即使用一个try语句块，大部分情况就像下面一样。
  *  <pre> {@code
  * class X {
  *   private final ReentrantLock lock = new ReentrantLock();
@@ -92,14 +108,18 @@ import java.util.Collection;
  * methods for inspecting the state of the lock.  Some of these
  * methods are only useful for instrumentation and monitoring.
  *
+ * 除了实现了Lock接口，这个类定义的一些公用的和受保护的方法，来查看lock的状态，
+ * 其中一此仅仅在监控的时候有用。
  * <p>Serialization of this class behaves in the same way as built-in
  * locks: a deserialized lock is in the unlocked state, regardless of
  * its state when serialized.
  *
+ * 序列化这个类就跟内建的锁一样：一个反序列化的锁处于解锁状态，不管序列化时是什么状态
+ *
  * <p>This lock supports a maximum of 2147483647 recursive locks by
  * the same thread. Attempts to exceed this limit result in
  * {@link Error} throws from locking methods.
- *
+ * 这个锁支持现同一个线程获取2147483647次。试图超过 这个限制将会抛出异常。
  * @since 1.5
  * @author Doug Lea
  */
@@ -112,6 +132,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * Base of synchronization control for this lock. Subclassed
      * into fair and nonfair versions below. Uses AQS state to
      * represent the number of holds on the lock.
+     *
+     * 这个锁的同步控制基础。子类加入了公平和不平的版本，使用AQS的state代表持用锁的线程数据
      */
     abstract static class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = -5179523762034025860L;
@@ -201,6 +223,9 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Performs lock.  Try immediate barge, backing up to normal
          * acquire on failure.
+         *
+         * 执行获取锁操作，尝试直接获取，如果失败再返回用正常的方式获取
+         *
          */
         final void lock() {
             if (compareAndSetState(0, 1))
