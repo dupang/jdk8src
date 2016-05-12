@@ -64,6 +64,12 @@ import sun.misc.Unsafe;
  * appropriate by concrete locks and related synchronizers to
  * implement their public methods.
  *
+ *
+ * 子类应该被定义成非公用的内部帮助类，用来实现外部包装类的同步属性
+ * 类AbstractQueuedSynchronizer没有实现任何同步接口。相反的，它定义
+ * 了类似acquireInterruptibly的方法，这此方法被具体的锁和相关的同步
+ * 器调用来实现它们的公共方法。
+ *
  * <p>This class supports either or both a default <em>exclusive</em>
  * mode and a <em>shared</em> mode. When acquired in exclusive mode,
  * attempted acquires by other threads cannot succeed. Shared mode
@@ -76,6 +82,14 @@ import sun.misc.Unsafe;
  * one of these modes, but both can come into play for example in a
  * {@link ReadWriteLock}. Subclasses that support only exclusive or
  * only shared modes need not define the methods supporting the unused mode.
+ *
+ * 这个类支持默认的独占模式和共享模式其中一个或两个。当以独占模式获取时，
+ * 其它线程试图获取不可能成功。多个线程以共享模式获取时有可能(但不需要)成功。
+ * 这个类不“了解”这些区别，除非是在一个共享节点获取后继节点，下一个正在
+ * 等待的线程(如果存在)必须也确定它是否能获取的情况时。以不同的模式等待的
+ * 线程同用相同的FIFO队列。通常情况下，子类的实现只支持一种模式。但是两种
+ * 模式都可以出现。比如在ReadWriteLock类里。只支持一种模式的子类不需要
+ * 定义不使用的模式的方法。
  *
  * <p>This class defines a nested {@link ConditionObject} class that
  * can be used as a {@link Condition} implementation by subclasses
@@ -90,17 +104,31 @@ import sun.misc.Unsafe;
  * behavior of {@link ConditionObject} depends of course on the
  * semantics of its synchronizer implementation.
  *
+ * 这个类这个一个内部ConditionObject类。这个类用来作为一个条件，被子类
+ * 实现来支持独占模式，这种模式的isHeldExclusively方法报告当前线程是否
+ * 独占地持有同步锁。带有getState值的release方法完全释放这个对象。并且
+ * 对于给定这个保存的状态值的acquire方法，最终保存这个对象到它的前一个
+ * 获取到的状态。没有AbstractQueuedSynchronizer的方法去创建这样一个条件，
+ * 所以如果这个约束条件不能被满足，不要使用它。这个ConditionObject对象的
+ * 行为依赖同步器的实现。
+ *
  * <p>This class provides inspection, instrumentation, and monitoring
  * methods for the internal queue, as well as similar methods for
  * condition objects. These can be exported as desired into classes
  * using an {@code AbstractQueuedSynchronizer} for their
  * synchronization mechanics.
  *
+ * 这个类为内部的队列提供检查，监控，和监控方法，也为condition objects
+ * 提供了类似的方法。如果需要，这些可以被引入到类里面用一个AbstractQueuedSynchronizer。
+ *
  * <p>Serialization of this class stores only the underlying atomic
  * integer maintaining state, so deserialized objects have empty
  * thread queues. Typical subclasses requiring serializability will
  * define a {@code readObject} method that restores this to a known
  * initial state upon deserialization.
+ * 这个类的序列化只存储底层的原子的数值操作状态，所以反序列化对象
+ * 有一个空的线程队列。要序列化的子类通常会定义一个readObject方法
+ * 来恢复这个值为一个已知的初始值在反序列化的时候
  *
  * <h3>Usage</h3>
  *
