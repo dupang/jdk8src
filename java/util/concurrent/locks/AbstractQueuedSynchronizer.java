@@ -145,6 +145,8 @@ import sun.misc.Unsafe;
  * the synchronization state using {@link #getState}, {@link
  * #setState} and/or {@link #compareAndSetState}:
  *
+ * 为了作为同步器的基础使用这个类，重新定义下面的方法，适当的时候，用getState，setState
+ * 和(或)compareAndSetState监控同步的状态。
  * <ul>
  * <li> {@link #tryAcquire}
  * <li> {@link #tryRelease}
@@ -160,11 +162,18 @@ import sun.misc.Unsafe;
  * means of using this class. All other methods are declared
  * {@code final} because they cannot be independently varied.
  *
+ * 每一个方法默认抛出UnsupportedOperationException。这个方法的实现必须是线程完全的
+ * ，并且应该是简短不会阻塞的。定义这些方法是使用这个类唯一支持的方法。所有其它方法被
+ * 声明为final，因为他们不能被改变。
+ *
  * <p>You may also find the inherited methods from {@link
  * AbstractOwnableSynchronizer} useful to keep track of the thread
  * owning an exclusive synchronizer.  You are encouraged to use them
  * -- this enables monitoring and diagnostic tools to assist users in
  * determining which threads hold locks.
+ *
+ * 你可能也发现了从AbstractOwnableSynchronizer继承过来的方法，对跟踪拥有独占同步器
+ * 的线程很有帮助。也推荐你使用它们--这使监控和分析工作来帮助用户判断那一个线程持有锁。
  *
  * <p>Even though this class is based on an internal FIFO queue, it
  * does not automatically enforce FIFO acquisition policies.  The core
@@ -184,6 +193,15 @@ import sun.misc.Unsafe;
  *
  * (Shared mode is similar but may involve cascading signals.)
  *
+ * 尽量这个类基于内部的FIFO队列，它没有机械地按照FIFO的获取策略，独占同步的核心思路是这样的形式。
+ *
+ * 获取：
+ *     先尝试获取，如果获取失败，把当前线程圧入队列，可能阻塞当前列队。
+ * 释放：
+ *     先尝试释放，如果成功，解锁队列中第一个线程。
+ *
+ * （共享模式跟这个差不多，但可能引起级联的唤醒通知）
+ *
  * <p id="barging">Because checks in acquire are invoked before
  * enqueuing, a newly acquiring thread may <em>barge</em> ahead of
  * others that are blocked and queued.  However, you can, if desired,
@@ -195,6 +213,12 @@ import sun.misc.Unsafe;
  * specifically designed to be used by fair synchronizers) returns
  * {@code true}.  Other variations are possible.
  *
+ * 因为检查获取操作在入队操作之前被调用，一个新的正在执行获取操作的线程可能抢在其它在队列
+ * 阻塞的线程前头获取资源。然而，你能，如果需要的话，定义tryAcquire和(或)tryAcquireShared
+ * 通过调用一个或多个检查方法来禁止线程强入，从而提供一个公平的FIFO获取序列。特别的，大部分
+ * 公平的两步器可以定义tryAcquire并返回false，如果hasQueuedPredecessors
+ * (一个专门设计被公平的同步器使用的方法)返回true。可能有其它的变化(也可能有其它变化的方法)。
+ *
  * <p>Throughput and scalability are generally highest for the
  * default barging (also known as <em>greedy</em>,
  * <em>renouncement</em>, and <em>convoy-avoidance</em>) strategy.
@@ -205,12 +229,20 @@ import sun.misc.Unsafe;
  * &quot;spin&quot; in the usual sense, they may perform multiple
  * invocations of {@code tryAcquire} interspersed with other
  * computations before blocking.  This gives most of the benefits of
- * spins when exclusive synchronization is only briefly held, without
+ * spins when exclusive Com is only briefly held, without
  * most of the liabilities when it isn't. If so desired, you can
  * augment this by preceding calls to acquire methods with
  * "fast-path" checks, possibly prechecking {@link #hasContended}
  * and/or {@link #hasQueuedThreads} to only do so if the synchronizer
  * is likely not to be contended.
+ *
+ * 吞吐量和可扩展性一般来说是最好的对于强入方式(亦称为greedy,renouncement,convoy-avoidance策略)。
+ * 因为不保证公平或饥饿，先进入队列的线程允许和后进入的线程竞争，并且每次竞争都有
+ * 机会赢对于进来的线程。同时，在一般的获取场景中不自旋，他们可能在阻塞之前穿插在其它计算之间执行多次的tryAcquire.
+ * 这提供了最大的自旋的好处当独占的通信只是简单的举行，without most of the liabilities when it isn't。
+ * 如果需要这样做，你可以增加它，通过在获取方法前增加"fast-path"检查。可能只需要做hasContended
+ * 和(或)hasQueuedThreads，如果同步器可能没有竞争。
+ *
  *
  * <p>This class provides an efficient and scalable basis for
  * synchronization in part by specializing its range of use to
@@ -221,7 +253,13 @@ import sun.misc.Unsafe;
  * {@link java.util.Queue} classes, and {@link LockSupport} blocking
  * support.
  *
+ * 这个类为同步提供了一个有效的可扩展的基础，部分使用范围是专门针对同步器的，
+ * 其中有获取和释放参数int状态，，还有一个内部的FIFO等待队列。当这些不能满足的时候，
+ * 你可以使用底层的java.util.concurrent.atomic atomic类，你自定义的java.util.Queue类，
+ * 和LockSupport阻塞支持构建同步器，
+ *
  * <h3>Usage Examples</h3>
+ * 用例
  *
  * <p>Here is a non-reentrant mutual exclusion lock class that uses
  * the value zero to represent the unlocked state, and one to
@@ -230,6 +268,10 @@ import sun.misc.Unsafe;
  * thread, this class does so anyway to make usage easier to monitor.
  * It also supports conditions and exposes
  * one of the instrumentation methods:
+ *
+ * 这是一个不可重入的独占的锁类，这个类用0值代表没有被锁住的状态，1代表锁住的状态，
+ * 然后一个不可重入的锁不严格要求记录当前主线程，这个类就是这样做的，为了使监控更
+ * 容易一些，它也支持条件和公开，
  *
  *  <pre> {@code
  * class Mutex implements Lock, java.io.Serializable {
@@ -331,11 +373,14 @@ public abstract class AbstractQueuedSynchronizer
     /**
      * Creates a new {@code AbstractQueuedSynchronizer} instance
      * with initial synchronization state of zero.
+     *
+     * 以初始化为0的同步状态创建一个新AbstractQueuedSynchronizer实例，
      */
     protected AbstractQueuedSynchronizer() { }
 
     /**
      * Wait queue node class.
+     * 等待队列结点类
      *
      * <p>The wait queue is a variant of a "CLH" (Craig, Landin, and
      * Hagersten) lock queue. CLH locks are normally used for
@@ -352,6 +397,14 @@ public abstract class AbstractQueuedSynchronizer
      * it only gives the right to contend.  So the currently released
      * contender thread may need to rewait.
      *
+     * 这个等待列队是"CLH(Craig, Landin, and Hagersten)"的一个变体，CLH锁一般
+     * 用作自旋锁，我们反而用它们来阻塞同步器，但是使用相同的基本策略来持有节点中的正在
+     * 处理器的线程的控制信息。第一个节点中的"status"字段跟踪一个线程是否应该被阻塞。
+     * 一个节点被通知(唤醒)当它的前继节点释放后。第一个队列中的节点就像拥有一个等待中的线程的
+     * specific-notification-style监视器，状态字段不控制是否线程被授予锁等，一个
+     * 线程可能试着获取锁，如果它在队列的头部。但是在一个不保证获取成功，它只给了竞争的权力。
+     * 所以当前被释放的参与竞争的线程可能需要再次等待。
+     *
      * <p>To enqueue into a CLH lock, you atomically splice it in as new
      * tail. To dequeue, you just set the head field.
      * <pre>
@@ -359,6 +412,10 @@ public abstract class AbstractQueuedSynchronizer
      * head |      | <---- |     | <---- |     |  tail
      *      +------+       +-----+       +-----+
      * </pre>
+     *
+     * 入队一个CLH锁，你以原子式地作为新的尾结点链接在队列后面，出队操作，你仅仅设置一个
+     * 头节点
+     *
      *
      * <p>Insertion into a CLH queue requires only a single atomic
      * operation on "tail", so there is a simple atomic point of
@@ -368,12 +425,20 @@ public abstract class AbstractQueuedSynchronizer
      * in part to deal with possible cancellation due to timeouts
      * and interrupts.
      *
+     * 插入一个CLH列队仅仅需要一个在"tail"部的原子操作，所以有一个简单的原子分界
+     * 点从入队到出队。简单来说，出队只是更新头节点。但是，它需要多做一点工作来确定
+     * 谁是他们的后继者。其中包括处理可能的因为超时和中断引起的取消
+     *
      * <p>The "prev" links (not used in original CLH locks), are mainly
      * needed to handle cancellation. If a node is cancelled, its
      * successor is (normally) relinked to a non-cancelled
      * predecessor. For explanation of similar mechanics in the case
      * of spin locks, see the papers by Scott and Scherer at
      * http://www.cs.rochester.edu/u/scott/synchronization/
+     *
+     * "prev"链接(没在原始的CLH锁中使用)主要需要处理取消。如果一个节点被取消了，
+     * 它的后继(一般情况下)被链接到一个没有被取消的前继节点。这了解释自旋锁的相似
+     * 机制，参考Scott和Scherer的论文
      *
      * <p>We also use "next" links to implement blocking mechanics.
      * The thread id for each node is kept in its own node, so a
@@ -386,6 +451,12 @@ public abstract class AbstractQueuedSynchronizer
      * (Or, said differently, the next-links are an optimization
      * so that we don't usually need a backward scan.)
      *
+     * 我们也使用"next"链接来实现阻塞机制。每一个节点的线程id保存在它的节点中，
+     * 所以一个前继节点通过遍历next link来确定那个线程是下一个然后唤醒下一个节点。
+     * 确定后继者必须避免和新排队的节点设置他们前继节点的next字段竞争。
+     * 必要时可以通过从队尾反向检查来解决，当一个节点的后继节点为null的时候。
+     * (或者，换一种说法，next-links是经过优化的，所以我们通常不需要反向搜索)
+     *
      * <p>Cancellation introduces some conservatism to the basic
      * algorithms.  Since we must poll for cancellation of other
      * nodes, we can miss noticing whether a cancelled node is
@@ -394,11 +465,18 @@ public abstract class AbstractQueuedSynchronizer
      * a new predecessor, unless we can identify an uncancelled
      * predecessor who will carry this responsibility.
      *
+     * 取消引入了一些保守主义的基本算法。因为我们必要投票取消其它节点，我们可以
+     * 忽略我们前面或后面的已经被取消节点。这是通过总是唤醒后继的取消节点来处理的。
+     * 允许他们关联到一个新的前继节点，除非我们能指定一个没有被取消的节点来担起这个责任。
+     *
      * <p>CLH queues need a dummy header node to get started. But
      * we don't create them on construction, because it would be wasted
      * effort if there is never contention. Instead, the node
      * is constructed and head and tail pointers are set upon first
      * contention.
+     *
+     * CLH队列需要一个虚拟的头节点来开始。但是我不需要在构造的时候创建它，因为这是浪费时间
+     * 如果永远没有竞争。相反的，这个节点在第一次出现竞争的时候被创建，并设置头和尾指针。
      *
      * <p>Threads waiting on Conditions use the same nodes, but
      * use an additional link. Conditions only need to link nodes
@@ -408,6 +486,11 @@ public abstract class AbstractQueuedSynchronizer
      * transferred to the main queue.  A special value of status
      * field is used to mark which queue a node is on.
      *
+     * 等待条件的线程使用相同的节点，但是使用额外的链接。条件只需要关联节点用简单(非并发)的
+     * 链接队列，因为他们只能在独占的持有的时候访问。当等待的时候，一个节点被插入一个条件队列。
+     * 当唤醒的时候，这个节点被转移到主要队列。状态字段的特殊值被用来标记这个节点处于那一种队列。
+     *
+     *
      * <p>Thanks go to Dave Dice, Mark Moir, Victor Luchangco, Bill
      * Scherer and Michael Scott, along with members of JSR-166
      * expert group, for helpful ideas, discussions, and critiques
@@ -415,19 +498,25 @@ public abstract class AbstractQueuedSynchronizer
      */
     static final class Node {
         /** Marker to indicate a node is waiting in shared mode */
+        //标记一个节点，正在以共享模式等待。
         static final Node SHARED = new Node();
         /** Marker to indicate a node is waiting in exclusive mode */
+        //标记一个节点正在以独占模式等待。
         static final Node EXCLUSIVE = null;
 
         /** waitStatus value to indicate thread has cancelled */
+        //表示线程被取消的等待状态值。
         static final int CANCELLED =  1;
         /** waitStatus value to indicate successor's thread needs unparking */
+        //表示后继线程需要唤醒的等待状态值。
         static final int SIGNAL    = -1;
         /** waitStatus value to indicate thread is waiting on condition */
+        //表示线程正在以有条件的等待的等待状态值。
         static final int CONDITION = -2;
         /**
          * waitStatus value to indicate the next acquireShared should
          * unconditionally propagate
+         * 表示下一个acquireShared应该无条件地传播下去的等待状态值。
          */
         static final int PROPAGATE = -3;
 
@@ -441,15 +530,15 @@ public abstract class AbstractQueuedSynchronizer
          *               then retry the atomic acquire, and then,
          *               on failure, block.
          *
-         *               这个节点的后继者被(或将要)阻塞了(通过park)，所以当前节点
-         *               必须unpark它的后继者当它释放或取消。为了避免竞争，获取方法必须
-         *               先表明他们需要一个signal,然后重试原子的获取操作，然后如果失败了，就阻塞。
+         *               这个节点的后继者被(或将要)阻塞了(通过park)，所以当前节点释放或取消
+         *               的时候必须unpark(唤醒)它的后继节点。为了避免竞争，获取方法必须
+         *               先表明他们需要一个signal(信号),然后重试原子的获取操作，然后一旦失败了，就阻塞。
          *
          *   CANCELLED:  This node is cancelled due to timeout or interrupt.
          *               Nodes never leave this state. In particular,
          *               a thread with cancelled node never again blocks.
          *
-         *               这个节点被取消因为超时或打断，节点从不离开这个状态，
+         *               这个节点因为超时或中断被取消了，节点永远不会离开这个状态，
          *               特别的，一个带着取消状态的节点的线程不会再次被阻塞。
          *
          *   CONDITION:  This node is currently on a condition queue.
@@ -459,8 +548,8 @@ public abstract class AbstractQueuedSynchronizer
          *               nothing to do with the other uses of the
          *               field, but simplifies mechanics.)
          *
-         *               这个节点现在在一个条件队列.它不会被用来作为同步队列节点，直接被转换过来，
-         *               这时候它的状态将被设置为0(在这里使用这个值，对这个节点的其它用法没有影响，只是一种简化机制)
+         *               这个节点现在在一个条件队列中.它不会被用来作为同步队列节点，直到被转移到主要队列上，
+         *               这时候它的状态将被设置为0(在这里使用这个值，对这个字段的其它用法没有影响，只是一种简化机制)
          *
          *   PROPAGATE:  A releaseShared should be propagated to other
          *               nodes. This is set (for head node only) in
@@ -468,7 +557,7 @@ public abstract class AbstractQueuedSynchronizer
          *               continues, even if other operations have
          *               since intervened.
          *
-         *               一个releaseShared应该被传播给其它节点，它设置这个值(仅对头节点)在doReleaseShared方法中，为了保证传播继续，
+         *               一个releaseShared应该被传播给其它节点，它在doReleaseShared方法中设置这个值(仅对头节点)，来保证传播继续，
          *               即使其它操作已经介入。
          *
          *   0:          None of the above
@@ -478,15 +567,15 @@ public abstract class AbstractQueuedSynchronizer
          * signal. So, most code doesn't need to check for particular
          * values, just for sign.
          *
-         * 这些值被设置为数值来简化使用。非负的值表示一个节点不需要signal.所以
-         * 大部分代码不需要检查特定的值，只判断sign值就行了。
+         * 为了简化使用这些值被设置为数值。非负的值表示一个节点不需要signal(唤醒后继节点).所以
+         * 大部分代码不需要检查特定的值，只判断是否是sign值就行了。
          *
          * The field is initialized to 0 for normal sync nodes, and
          * CONDITION for condition nodes.  It is modified using CAS
          * (or when possible, unconditional volatile writes).
          *
-         * 这个字段被初始化为0对于普通的同步节点，并且对于条件节点初始为CONDITION。
-         * 它被修改用CAS操作(或者当可能的时候，用无条件的volatile writes)
+         * 对于普通的同步节点这个字段被初始化为0，并且对于条件节点初始为CONDITION。
+         * 用CAS操作修改这个值(或者可能的话，用无条件的volatile writes)
          */
         volatile int waitStatus;
 
@@ -501,10 +590,11 @@ public abstract class AbstractQueuedSynchronizer
          * cancelled thread never succeeds in acquiring, and a thread only
          * cancels itself, not any other node.
          *
-         * 关联当前节点(线程)的前继节点。当前结点依赖前继节点来判断waitStatus的值，当进入队列的时候被分配，
-         * 并且分配为null(为了GC)当出队列的时候。同时根据一个前继节点的取消，在寻找一个没有取消的节点时我们会短路。
-         * 没有取消的节点总是存在，因为头节点永远不会取消：一个节点变为头节点只有在一个成功获取操作后。
-         * 一个取消的线程永远不会成功获取。并且一个线程只能取消它自己，而不能是任何其它节点，
+         * 当前节点(线程)关联的前继节点。当前结点依赖前继节点来检查waitStatus的值。当进入队列的时候被赋值，
+         * 并且当出队列的时候被赋值为null(为了GC)。同时当一个前继节点取消的时候，我们在寻找一个没有取消的节点时会短路
+         * (停止寻找，也就是说当前继节点被取消的话，会接着往前寻找，直接找到一个不是取消状态的节点)。
+         * 这样的(没有取消的)节点总是存在，因为头节点永远不会被取消：一个节点变为头节点只有在一个成功获取操作后。
+         * 一个取消的线程永远不会在获取操作中成功,并且一个线程只能取消它自己，而不能是任何其它节点，
          *
          */
         volatile Node prev;
@@ -522,7 +612,7 @@ public abstract class AbstractQueuedSynchronizer
          * point to the node itself instead of null, to make life
          * easier for isOnSyncQueue.
          *
-         * 关联到当前节点的后继节点，当当前节点释放后，需要唤醒后继节点，在入队列的时候分配，
+         * 当前节点关联到的后继节点，当当前节点释放后，需要唤醒后继节点，在入队列的时候被赋值，
          * 当绕过取消的前继节点时重新调整后继节点，并且出队列的时候为null,入队操作不分配前继
          * 节点的next字段，直到后一个节点入队列。所以当看到一个节点空的next字段时并不一定意为着
          * 这个节点是这个队列的最后一个节点。但是，如果一个节点的next字段为null时，我们可以检查尾节点
