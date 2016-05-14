@@ -614,8 +614,8 @@ public abstract class AbstractQueuedSynchronizer
          *
          * 当前节点关联到的后继节点，当当前节点释放后，需要唤醒后继节点，在入队列的时候被赋值，
          * 当绕过取消的前继节点时重新调整后继节点，并且出队列的时候为null,入队操作不分配前继
-         * 节点的next字段，直到后一个节点入队列。所以当看到一个节点空的next字段时并不一定意为着
-         * 这个节点是这个队列的最后一个节点。但是，如果一个节点的next字段为null时，我们可以检查尾节点
+         * 节点的next字段，直到后一个节点入队列。所以当看到一个节点的next字段为null时并不一定意为着
+         * 这个节点是这个队列的最后一个节点。但是，如果一个节点的next字段为null时，我们可以遍历地检查尾节点
          * 的前继节点。取消节点的next字段被设置成指向节点本身，而不是null,为了简化理解。
          */
         volatile Node next;
@@ -637,9 +637,9 @@ public abstract class AbstractQueuedSynchronizer
          * re-acquire. And because conditions can only be exclusive,
          * we save a field by using special value to indicate shared
          * mode.
-         * 关联到下一个在等待的节点，或者是特殊的SHARED值。因为只有在独占模式下才能访问
-         * 条件队列，我们只需要一个linkedqueue来保存节点，当他们在等待条件的时候。
-         * 他们在重新获取的时候被转移到队列中。并且因为状态只可能是独占的，我们保留一个特殊值的字段
+         * 关联到下一个在有条件地等待的节点，或者是特殊的SHARED值。因为只有在独占模式下才能访问
+         * 条件队列，我们只需要一个简单的(不是并发的)linkedqueue来保存节点，当他们在有条件等待的时候。
+         * 他们在被转移到队列中的时候可以重新获取。并且因为条件只可能是独占的，我们保留一个特殊值的字段
          * 来表示共享模式。
          */
         Node nextWaiter;
@@ -658,7 +658,7 @@ public abstract class AbstractQueuedSynchronizer
          * be elided, but is present to help the VM.
          *
          * 返回前一个节点，或者抛出NPE如果是null.当使用时前一个节点不为null时，是否为Null的
-         * 检查可能被去掉，但是现在它存在是为了帮助VM.
+         * 检查可以被去掉，但是现在它存在是为了帮助VM.
          *
          * @return the predecessor of this node
          */
@@ -736,7 +736,7 @@ public abstract class AbstractQueuedSynchronizer
      * and write.
      *
      * 自动用给定的值设置同步状态的值，如果当前状态值等于期望的值。
-     * 这个操作具体内存语义的volatile读和写
+     * 这个操作具有内存语义的volatile读和写
      *
      * @param expect the expected value
      * @param update the new value
@@ -761,8 +761,12 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * Inserts node into queue, initializing if necessary. See picture above.
-     *
      * 在一个队列中插入一个值，必要时进行初始化。
+     *
+     * 总体思路是如果尾结点为null，则说明这个队列还没有初始化，先初始化队列节点.
+     * 如果尾结点不为null,把加入节点的前继节点赋值为尾结点.然后把尾节点赋值为加入节点,
+     * 最后把原尾节点的next字段赋值为加入的节点.
+     *
      * @param node the node to insert
      * @return node's predecessor
      */
@@ -809,8 +813,8 @@ public abstract class AbstractQueuedSynchronizer
      * Sets head of queue to be node, thus dequeuing. Called only by
      * acquire methods.  Also nulls out unused fields for sake of GC
      * and to suppress unnecessary signals and traversals.
-     * 设置这个队列的头节点，也就是出列。只能被acquire方法调用。同时把不用的字段值设置成null.
-     * 为了方便垃圾回收和避免不必要的信号和遍历。
+     * 设置这个队列的头节点，也就是出列(因为一个节点出队列的时候,需要重新设置新的头节点)。只能被acquire方法调用。同时把不用的字段值设置成null.
+     * 为了方便垃圾回收和避免不必要的信号(通知or唤醒)和遍历。
      *
      * @param node the node
      */
@@ -830,6 +834,8 @@ public abstract class AbstractQueuedSynchronizer
          * If status is negative (i.e., possibly needing signal) try
          * to clear in anticipation of signalling.  It is OK if this
          * fails or if status is changed by waiting thread.
+         *
+         * 如果这个节点的状态值小于0,把这个节点的状态值设置成0;
          */
         int ws = node.waitStatus;
         if (ws < 0)
@@ -840,6 +846,10 @@ public abstract class AbstractQueuedSynchronizer
          * just the next node.  But if cancelled or apparently null,
          * traverse backwards from tail to find the actual
          * non-cancelled successor.
+         *
+         * 需要唤醒的线程存在于后面的节点.一般情况就是下一个节点.
+         * 但是如果下一个节点被取消或者为null,就会从尾结点遍历地
+         * 寻找一个没有取消的后继节点.
          */
         Node s = node.next;
         if (s == null || s.waitStatus > 0) {
@@ -857,7 +867,7 @@ public abstract class AbstractQueuedSynchronizer
      * propagation. (Note: For exclusive mode, release just amounts
      * to calling unparkSuccessor of head if it needs signal.)
      * 共享模式的释放操作。唤醒后继节点并保证传播继续。(注意：对于独占模式，释放操作
-     * 只是相当于调用头节点的后继节点，如果它需要信号)
+     * 只是相当于唤醒头节点的后继节点，如果它需要信号(唤醒))
      *
      */
     private void doReleaseShared() {
@@ -872,10 +882,10 @@ public abstract class AbstractQueuedSynchronizer
          * unparkSuccessor, we need to know if CAS to reset status
          * fails, if so rechecking.
          *
-         * 保证释放的传播性，即使有其它的获取或释放操作。它以正常的方式进行，如果头节点需要signal就
-         * 试着唤醒头节点的后继节点。但是如果头节点不需要signal，它的状态就会被设置成PROGAGATE，
-         * 来保证释放传播下去，另外，我们需要遍历队列以防在我们进行操作的时候有新节点加进来，
-         * 同时，不像其它唤醒操作，我们需要短简是否CAS操作失败了，如果失败，重新检查。
+         * 保证释放的传播性，即使有其它的正在进行的获取或释放操作。它通常以这样的方式进行，如果头节点的后继节点需要signal(唤醒)就
+         * 试着唤醒头节点的后继节点。但是如果头节点的后继节点不需要signal(唤醒)，它的状态就会被设置成PROGAGATE，
+         * 来保证当它释放的时候释放会传播下去，另外，我们需要遍历队列以防在我们进行操作的时候有新节点加进来，
+         * 同时，不像其它唤醒操作，我们需要检查是否CAS操作失败了，如果失败，重新检查。
          */
         for (;;) {
             Node h = head;
@@ -923,7 +933,7 @@ public abstract class AbstractQueuedSynchronizer
          *     or we don't know, because it appears null
          *
          * 试着通知下一个队列节点，如果符合下面的情况。
-         *    调用方指定了传播属性，或者被前一个操作(在setHead之前或之后设置了waitStatus值为PROPAGATION)记录了传播属性，
+         *    调用者指定了传播属性，或者被前一个操作(在setHead之前或之后设置了waitStatus值为PROPAGATION)记录了传播属性，
          *    (注意：这用来waitStatus的信号检查，因为PROPAGATE状态可能转变为SIGNAL)
          *    并且
          *     下一个节点正在以共享模式等待或者我们不知道下一个节点的状态，因为它可能为null
