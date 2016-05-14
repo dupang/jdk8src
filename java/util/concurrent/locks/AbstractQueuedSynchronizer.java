@@ -2667,7 +2667,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
-     * CAS next field of a node.
+     *
      */
     private static final boolean compareAndSetNext(Node node,
                                                    Node expect,
