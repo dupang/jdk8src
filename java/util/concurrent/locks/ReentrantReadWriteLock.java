@@ -40,14 +40,24 @@ import java.util.Collection;
 /**
  * An implementation of {@link ReadWriteLock} supporting similar
  * semantics to {@link ReentrantLock}.
+ *
+ * ReadWriteLock的实现，支持跟ReentrantLock类似的语义。
+ *
  * <p>This class has the following properties:
+ *
+ * 这个类有以下的属性。
  *
  * <ul>
  * <li><b>Acquisition order</b>
  *
+ * 获取顺序
+ *
  * <p>This class does not impose a reader or writer preference
  * ordering for lock access.  However, it does support an optional
  * <em>fairness</em> policy.
+ *
+ * 这个类对锁的访问没有读或写的优先顺序。但是，它确实支持可选的
+ * 公平策略。
  *
  * <dl>
  * <dt><b><i>Non-fair mode (default)</i></b>
@@ -57,6 +67,11 @@ import java.util.Collection;
  * indefinitely postpone one or more reader or writer threads, but
  * will normally have higher throughput than a fair lock.
  *
+ * 默认的是非公平的模式
+ * 当以非公平的方式构建的时候，并没有指定进入读写锁的顺序，受制于重入约束。
+ * 一个不停的竞争的非公平的锁可能无限制的推迟一个或更多的读或写的线程，
+ * 但是通常具有比公平锁更高的吞吐量
+ *
  * <dt><b><i>Fair mode</i></b>
  * <dd>When constructed as fair, threads contend for entry using an
  * approximately arrival-order policy. When the currently held lock
@@ -64,6 +79,10 @@ import java.util.Collection;
  * be assigned the write lock, or if there is a group of reader threads
  * waiting longer than all waiting writer threads, that group will be
  * assigned the read lock.
+ * 公平模式
+ * 当以公平方式构建时，线程使用一个先后顺序的策略来竞争。当当前的线程
+ * 持有的锁释放了，等待时间最长的单个写线程将获取写锁，或者如果有一组读
+ * 线程比所有的写线程待的时候都长，这组读线程将获取这个锁。
  *
  * <p>A thread that tries to acquire a fair read lock (non-reentrantly)
  * will block if either the write lock is held, or there is a waiting
@@ -74,6 +93,12 @@ import java.util.Collection;
  * in the queue with the write lock free, then those readers will be
  * assigned the read lock.
  *
+ * 如果写锁被别的线程持有，或者有一个正在等待的写线程，
+ * 一个线程试图获取一个公平的读锁(非重入的)将被阻塞。直到等待时间最长的
+ * 当前的写线程获取并释放了写锁，这个线程才会获取到读锁。当然，如果一个
+ * 等待写线程放弃等待，在队列中等待时间最长的没有写锁竞争的一个或多个读线程
+ * 将会获取读锁。
+ *
  * <p>A thread that tries to acquire a fair write lock (non-reentrantly)
  * will block unless both the read lock and write lock are free (which
  * implies there are no waiting threads).  (Note that the non-blocking
@@ -83,12 +108,22 @@ import java.util.Collection;
  * <p>
  * </dl>
  *
+ * 一个线程试图获取一个公平的写锁(不可重入的)将会阻塞，除非读锁和写锁都
+ * 被释放了（也就是没有等待的线程）。(注意非阻塞的ReadLock.tryLock()和WriteLock.
+ * tryLock()不管这个公平策略，并且将立刻获取锁，如果可能的话，不管是否有正在等待的
+ * 线程)
+ *
  * <li><b>Reentrancy</b>
+ *
+ * 可重入性
  *
  * <p>This lock allows both readers and writers to reacquire read or
  * write locks in the style of a {@link ReentrantLock}. Non-reentrant
  * readers are not allowed until all write locks held by the writing
  * thread have been released.
+ *
+ * 这个锁允许读和写像ReentrantLock那样获取读或写锁。不可重入的读不被
+ * 允许只到所有的被写线程持有的写锁全部释放了。
  *
  * <p>Additionally, a writer can acquire the read lock, but not
  * vice-versa.  Among other applications, reentrancy can be useful
@@ -96,15 +131,26 @@ import java.util.Collection;
  * perform reads under read locks.  If a reader tries to acquire the
  * write lock it will never succeed.
  *
+ * 另外，一个写线程可以获取读锁，但反过来却不行。在其它程序中，
+ * 可重入性可能有用当调用时写锁被持有或在读锁下回调执行读操作。如果一个读线程试图获取
+ * 写锁，它将不会成功。
+ *
  * <li><b>Lock downgrading</b>
  * <p>Reentrancy also allows downgrading from the write lock to a read lock,
  * by acquiring the write lock, then the read lock and then releasing the
  * write lock. However, upgrading from a read lock to the write lock is
  * <b>not</b> possible.
  *
+ * 锁降级
+ * 可重入性也允许从写锁降级到读锁，通过获取写锁，然后获取读锁，然后释放写锁。
+ * 但是从读锁升级到写锁是不可能的。
+ *
  * <li><b>Interruption of lock acquisition</b>
  * <p>The read lock and write lock both support interruption during lock
  * acquisition.
+ *
+ * 锁获取的中断。读锁和写锁都支持获取锁的过程中中断。
+ *
  *
  * <li><b>{@link Condition} support</b>
  * <p>The write lock provides a {@link Condition} implementation that
@@ -113,9 +159,15 @@ import java.util.Collection;
  * {@link ReentrantLock#newCondition} does for {@link ReentrantLock}.
  * This {@link Condition} can, of course, only be used with the write lock.
  *
+ * 条件支持
+ * 写锁提供了一个Condition实现，它的行为和为reentrantLock提供的ReentrantLock.newCondition是一样的。
+ * 这个条件当然只能被写锁使用。
+ *
  * <p>The read lock does not support a {@link Condition} and
  * {@code readLock().newCondition()} throws
  * {@code UnsupportedOperationException}.
+ *
+ * 写锁不直持条件，并且readLock().newCondition()会抛出异常。
  *
  * <li><b>Instrumentation</b>
  * <p>This class supports methods to determine whether locks
@@ -123,9 +175,16 @@ import java.util.Collection;
  * system state, not for synchronization control.
  * </ul>
  *
+ * Instrumentation(监控)
+ * 这个类提供了几个方法，这个方法可能检查锁是否被持有或竞争。这个方法被
+ * 设计用来监控系统状态，而不是为了同步控制。
+ *
  * <p>Serialization of this class behaves in the same way as built-in
  * locks: a deserialized lock is in the unlocked state, regardless of
  * its state when serialized.
+ *
+ * 这个类的序列化行为跟内置锁的一样：一个锁的反序列化处于非锁住的状态，
+ * 不管序列化的时候是什么状态。
  *
  * <p><b>Sample usages</b>. Here is a code sketch showing how to perform
  * lock downgrading after updating a cache (exception handling is
@@ -209,6 +268,8 @@ import java.util.Collection;
  * and 65535 read locks. Attempts to exceed these limits result in
  * {@link Error} throws from locking methods.
  *
+ * 这个锁支持最大数65535的递归写锁和65535个读锁。读图超过这个限制将
+ * 抛出异常。
  * @since 1.5
  * @author Doug Lea
  */
@@ -216,15 +277,19 @@ public class ReentrantReadWriteLock
         implements ReadWriteLock, java.io.Serializable {
     private static final long serialVersionUID = -6992448646407690164L;
     /** Inner class providing readlock */
+    //提供读锁的内部类
     private final ReentrantReadWriteLock.ReadLock readerLock;
     /** Inner class providing writelock */
+    //提供写锁的内部类
     private final ReentrantReadWriteLock.WriteLock writerLock;
     /** Performs all synchronization mechanics */
+    //执行所有的同步机制
     final Sync sync;
 
     /**
      * Creates a new {@code ReentrantReadWriteLock} with
      * default (nonfair) ordering properties.
+     * 创建一个非公平的新的ReentrantReadWriteLock
      */
     public ReentrantReadWriteLock() {
         this(false);
@@ -233,7 +298,7 @@ public class ReentrantReadWriteLock
     /**
      * Creates a new {@code ReentrantReadWriteLock} with
      * the given fairness policy.
-     *
+     * 用一个给定的公平策略创建一个ReentrantReadWriteLock
      * @param fair {@code true} if this lock should use a fair ordering policy
      */
     public ReentrantReadWriteLock(boolean fair) {
@@ -248,6 +313,10 @@ public class ReentrantReadWriteLock
     /**
      * Synchronization implementation for ReentrantReadWriteLock.
      * Subclassed into fair and nonfair versions.
+     *
+     * 为ReentrantReadWriteLock提供的同步实现类
+     * 子类细分为公平和非公平的版本
+     *
      */
     abstract static class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 6317671515068378041L;
@@ -257,6 +326,9 @@ public class ReentrantReadWriteLock
          * Lock state is logically divided into two unsigned shorts:
          * The lower one representing the exclusive (writer) lock hold count,
          * and the upper the shared (reader) hold count.
+         * 读写数据提取的常量和函数
+         * 锁状态逻辑上分为两个无符号的short
+         * 小的表示独占锁的持有数量，并且大的表示共享锁持有的数量
          */
 
         static final int SHARED_SHIFT   = 16;
@@ -265,8 +337,10 @@ public class ReentrantReadWriteLock
         static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1;
 
         /** Returns the number of shared holds represented in count  */
+        //返回代表持有共享锁的数量
         static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }
         /** Returns the number of exclusive holds represented in count  */
+        //返回代表持有独占锁的数量
         static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }
 
         /**
