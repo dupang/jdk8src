@@ -1173,7 +1173,8 @@ public class ReentrantReadWriteLock
          * <p>If the write lock is acquired by the current thread then the
          * lock hold count is set to one.
          *
-         * 如果写锁
+         * 如果写锁被当前线程获取，那么持有数量被设置为1
+         *
          * <p>If the current thread:
          *
          * <ul>
@@ -1188,11 +1189,17 @@ public class ReentrantReadWriteLock
          *
          * then {@link InterruptedException} is thrown and the current
          * thread's interrupted status is cleared.
+         * 如果当前线程：
+         * 当进入这个方法里带着中断状态，或者当获取写锁的时候被中断，
+         * 那么抛出InterruptedException并且当前线程的中断状态被清除。
          *
          * <p>In this implementation, as this method is an explicit
          * interruption point, preference is given to responding to
          * the interrupt over normal or reentrant acquisition of the
          * lock.
+         *
+         * 在这个实现当中，因为这个方法是明显的中断点，优先回应中断，而不是
+         * 普通或重入的获取。
          *
          * @throws InterruptedException if the current thread is interrupted
          */
@@ -1203,6 +1210,8 @@ public class ReentrantReadWriteLock
         /**
          * Acquires the write lock only if it is not held by another thread
          * at the time of invocation.
+         *
+         * 获取写锁只在锁没有被其它线程持有的时候。
          *
          * <p>Acquires the write lock if neither the read nor write lock
          * are held by another thread
@@ -1218,16 +1227,25 @@ public class ReentrantReadWriteLock
          * #tryLock(long, TimeUnit) tryLock(0, TimeUnit.SECONDS) }
          * which is almost equivalent (it also detects interruption).
          *
+         * 获取写锁如果没有写锁或读锁被其它线程持有，并且立刻返回true,同步设置
+         * 锁的持有数量为1。即使这是一个公平锁，调用tryLock()将立即获取锁如果锁可用，
+         * 不管其它线程是否正在等待写锁。这种行为可能在一些情况下有用，尽管它打破了
+         * 公平性。如果你坚持锁的公平性，那么使用tryLock(long,TimeUnit),
+         *
          * <p>If the current thread already holds this lock then the
          * hold count is incremented by one and the method returns
          * {@code true}.
+         * 如果当前线程已经持有这个锁，那么持有数量被加1并且返回true.
          *
          * <p>If the lock is held by another thread then this method
          * will return immediately with the value {@code false}.
+         * 如果锁被其它线程持有那么 这个方法立刻返回false.
          *
          * @return {@code true} if the lock was free and was acquired
          * by the current thread, or the write lock was already held
          * by the current thread; and {@code false} otherwise.
+         * 如果锁是自由的并且被当前线程获取那么返回true,或者写锁已经被
+         * 当前线程持有否则就返回false.
          */
         public boolean tryLock( ) {
             return sync.tryWriteLock();
@@ -1237,6 +1255,8 @@ public class ReentrantReadWriteLock
          * Acquires the write lock if it is not held by another thread
          * within the given waiting time and the current thread has
          * not been {@linkplain Thread#interrupt interrupted}.
+         * 以给定的等待时间获取写锁如果这个个锁没有被其它线程持有，并且
+         * 当前线程没有被中断，
          *
          * <p>Acquires the write lock if neither the read nor write lock
          * are held by another thread
@@ -1254,18 +1274,28 @@ public class ReentrantReadWriteLock
          *     lock.tryLock(timeout, unit)) {
          *   ...
          * }}</pre>
+         * 获取写锁如果没有读锁或写锁被其它线程持有，并且立刻返回true,同步设置
+         * 持有数量为1。如果这个是公平锁，那么可用的锁将不用被获取如果有其它线程
+         * 正在等待写锁。这一点和tryLock()相反。如果你想一个定时的trylock允许强行
+         * 获取公平锁，那么可能像下面把定时和不定时的样式放一块。
          *
          * <p>If the current thread already holds this lock then the
          * hold count is incremented by one and the method returns
          * {@code true}.
          *
+         * 如果当前线程已经持有这个锁，那么持有锁数量被加1，并且返回true.
+         *
          * <p>If the lock is held by another thread then the current
          * thread becomes disabled for thread scheduling purposes and
          * lies dormant until one of three things happens:
          *
+         * 如果锁被其它线程持有，那么当前线程对线程调试变得不可用，并且休眠只到
+         * 下面的三中情况中的一种发生:
+         *
          * <ul>
          *
          * <li>The write lock is acquired by the current thread; or
+         * 写锁被当前线程获取，或者其它线程中断了当前线程，或者超时
          *
          * <li>Some other thread {@linkplain Thread#interrupt interrupts}
          * the current thread; or
@@ -1276,6 +1306,8 @@ public class ReentrantReadWriteLock
          *
          * <p>If the write lock is acquired then the value {@code true} is
          * returned and the write lock hold count is set to one.
+         *
+         *  如果写锁被获取，那么返回true，并且写锁的持有数量被设置为1
          *
          * <p>If the current thread:
          *
@@ -1291,6 +1323,9 @@ public class ReentrantReadWriteLock
          *
          * then {@link InterruptedException} is thrown and the current
          * thread's interrupted status is cleared.
+         * 如果 当前线程：
+         * 进入这个方法的时候设置了中断状态或者获取锁的时候被中断了，
+         * 那么InterruptedException被抛出并且当前线程的中断状态被清除。
          *
          * <p>If the specified waiting time elapses then the value
          * {@code false} is returned.  If the time is less than or
@@ -1300,7 +1335,11 @@ public class ReentrantReadWriteLock
          * interruption point, preference is given to responding to
          * the interrupt over normal or reentrant acquisition of the
          * lock, and over reporting the elapse of the waiting time.
+         * 如果指定的等待时间消耗完，那么返回false.如果时间小于或等于0，
+         * 方法将不再等待。
          *
+         * 在这个实现中，因为这个方法是一个显然的中断点，优先响应中断，
+         * 而不是普通的或重入获取，并且报告等待时间。
          * @param timeout the time to wait for the write lock
          * @param unit the time unit of the timeout argument
          *
