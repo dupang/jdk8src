@@ -346,16 +346,20 @@ public class ReentrantReadWriteLock
         /**
          * A counter for per-thread read hold counts.
          * Maintained as a ThreadLocal; cached in cachedHoldCounter
+         * 一个记录每一个线程读锁持有的数量的计数器。以ThreadLocal的方式维护
+         * 缓存在cachedHoldCounter.
          */
         static final class HoldCounter {
             int count = 0;
             // Use id, not reference, to avoid garbage retention
+            // 使用id 而不是引用，来避免垃圾滞留
             final long tid = getThreadId(Thread.currentThread());
         }
 
         /**
          * ThreadLocal subclass. Easiest to explicitly define for sake
          * of deserialization mechanics.
+         * ThreadLocal的子类，为了反序列化机制最高简单的显示定义
          */
         static final class ThreadLocalHoldCounter
             extends ThreadLocal<HoldCounter> {
@@ -368,6 +372,8 @@ public class ReentrantReadWriteLock
          * The number of reentrant read locks held by current thread.
          * Initialized only in constructor and readObject.
          * Removed whenever a thread's read hold count drops to 0.
+         * 被当前线程持有的可重入的读锁的数量。只在构建器中和反序列化在被初始化。
+         * 在线程持有读锁数量为0的时候被移除。
          */
         private transient ThreadLocalHoldCounter readHolds;
 
@@ -384,6 +390,16 @@ public class ReentrantReadWriteLock
          *
          * <p>Accessed via a benign data race; relies on the memory
          * model's final field and out-of-thin-air guarantees.
+         *
+         * 最近的线程成功获取到的读锁的数量。这节省了ThreadLocal在下一个线程要释放的锁是
+         * 最后一个线程要获取的情况下的查找。这是non-volatile因为它公用来作为启发，
+         * 并且可以很好的被缓存。
+         *
+         * 可以比线程存活时间更长，因为它缓存了读锁数量，但是通过没有保留线程的引用来
+         * 避免垃圾滞留，、
+         *
+         * 通过良性的数据竞争来访问，依赖于内在模型的final字段和out-of-thin-air保证。
+         *
          */
         private transient HoldCounter cachedHoldCounter;
 
@@ -404,6 +420,15 @@ public class ReentrantReadWriteLock
          *
          * <p>This allows tracking of read holds for uncontended read
          * locks to be very cheap.
+         *
+         * firstReader是第一个获取读锁的线程。firstReaderHoldCount是firstReader的持有数量。
+         *
+         * 更确切的说，firstReader是最后改变共享数量从0到1到的唯一线程，并且从那时候起还没有释放读锁，
+         * 如果没有这样的线程，这个字段值就是null.
+         *
+         * 通过良性的数据竞争来访问，依赖于内在模型的final字段和out-of-thin-air保证。
+         *
+         * 这使得追踪非竞争的读锁持有数量非常容易。
          */
         private transient Thread firstReader = null;
         private transient int firstReaderHoldCount;
@@ -417,12 +442,16 @@ public class ReentrantReadWriteLock
          * Acquires and releases use the same code for fair and
          * nonfair locks, but differ in whether/how they allow barging
          * when queues are non-empty.
+         * 公平和非公平获取和释放使用相同的代码，但是不同是当队列不为空的时候，他们怎么
+         * 进入竞争。
          */
 
         /**
          * Returns true if the current thread, when trying to acquire
          * the read lock, and otherwise eligible to do so, should block
          * because of policy for overtaking other waiting threads.
+         * 当当前线程试图获取读锁的时候，其它线程有资格获取。这时候返回true.
+         * 应该阻塞是因为超越其它等待线程的策略。
          */
         abstract boolean readerShouldBlock();
 
@@ -438,6 +467,8 @@ public class ReentrantReadWriteLock
          * Conditions. So it is possible that their arguments contain
          * both read and write holds that are all released during a
          * condition wait and re-established in tryAcquire.
+         * 注意tryRelease和tryAcquire可以被Conditions调用。所以可能他们包含的
+         * 读和写的参数都被释放了在等待条件的时候和在tryAcquire重新建立的时候。
          */
 
         protected final boolean tryRelease(int releases) {
@@ -462,6 +493,11 @@ public class ReentrantReadWriteLock
              *    it is either a reentrant acquire or
              *    queue policy allows it. If so, update state
              *    and set owner.
+             *
+             * 1. 如果读数量不是0中写数量不为0并且锁的持有者不是当前线程，失败。
+             * 2. 如果数量超过最大值，失败，(这只能在数量不是0的时候发生)
+             * 3. 否则，这个线程有资格获取锁，如果这是一个可重入的获取或排除策略允许。
+             *    如果是这样，更新状态值并且设置锁的持有者
              */
             Thread current = Thread.currentThread();
             int c = getState();
@@ -534,6 +570,9 @@ public class ReentrantReadWriteLock
              * 3. If step 2 fails either because thread
              *    apparently not eligible or CAS fails or count
              *    saturated, chain to version with full retry loop.
+             * 1. 如果写锁被其它线程持有，失败。
+             * 2. 否则，这个线程有资格获取锁，所以根据排除策略判断是否应试被
+             *    阻塞。如果不阻塞，试着获取锁并且更新持有数量。
              */
             Thread current = Thread.currentThread();
             int c = getState();
@@ -1562,6 +1601,8 @@ public class ReentrantReadWriteLock
      * this directly rather than via method Thread.getId() because
      * getId() is not final, and has been known to be overridden in
      * ways that do not preserve unique mappings.
+     * 返回指定线程的线程id.我们必须直接访问这个方法而不是通过Thread.getId(),因为
+     * getId不是final,并且已经被知道可以被overridden，以不保存唯一映射的方式。
      */
     static final long getThreadId(Thread thread) {
         return UNSAFE.getLongVolatile(thread, TID_OFFSET);
