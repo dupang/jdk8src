@@ -1612,6 +1612,9 @@ public class ReentrantReadWriteLock
      * designed to facilitate construction of subclasses that provide
      * more extensive lock monitoring facilities.
      *
+     * 返回一个可能正在等待这个读锁的集合,因为真实线程集可能动态改变当
+     * 构建这个结果的时候,返回的集合只是一个大概.返回的集合元素没有特定
+     * 的顺序.这个方法被用来方便子类构建更具有扩展性的锁监控.
      * @return the collection of threads
      */
     protected Collection<Thread> getQueuedReaderThreads() {
@@ -1624,6 +1627,9 @@ public class ReentrantReadWriteLock
      * time, a {@code true} return does not guarantee that any other
      * thread will ever acquire a lock.  This method is designed
      * primarily for use in monitoring of the system state.
+     *
+     * 查询是否有线程正在等待获取读锁或写锁。注意因为取消可能随时发生，返回true不保证
+     * 其它线程将获取一个锁。这个方法被设计用来监控系统状态。
      *
      * @return {@code true} if there may be other threads waiting to
      *         acquire the lock
@@ -1638,6 +1644,9 @@ public class ReentrantReadWriteLock
      * occur at any time, a {@code true} return does not guarantee
      * that this thread will ever acquire a lock.  This method is
      * designed primarily for use in monitoring of the system state.
+     *
+     * 查询是不是给定的线程正在等待获取读锁或写锁。注意因为取消可能随时发生，返回true不保证
+     * 这个程将获取一个锁。这个方法被设计用来监控系统状态。
      *
      * @param thread the thread
      * @return {@code true} if the given thread is queued waiting for this lock
@@ -1654,6 +1663,9 @@ public class ReentrantReadWriteLock
      * method traverses internal data structures.  This method is
      * designed for use in monitoring of the system state, not for
      * synchronization control.
+     * 返回一个估算的正在等待获取读锁或写锁的线程数量。这个值仅仅是一个估算值，因为线程
+     * 数量可能动态的改变，当这个方法遍历数据结构的时候。这个方法被设计用来监控系统状态，
+     * 而不是同步控制。
      *
      * @return the estimated number of threads waiting for this lock
      */
@@ -1670,6 +1682,9 @@ public class ReentrantReadWriteLock
      * order.  This method is designed to facilitate construction of
      * subclasses that provide more extensive monitoring facilities.
      *
+     * 返回一个包含可能正在等待获取写锁或读锁的线程集合，因为真实的线程集合可能动态的改变，
+     * 当构建这个结果的时候，返回的结果集只是一个最大程度的估计。返回集合的远程没有选定的
+     * 顺序。这个方法被用来方便子类构建更具有扩展性的锁监控.
      * @return the collection of threads
      */
     protected Collection<Thread> getQueuedThreads() {
@@ -1683,6 +1698,9 @@ public class ReentrantReadWriteLock
      * not guarantee that a future {@code signal} will awaken any
      * threads.  This method is designed primarily for use in
      * monitoring of the system state.
+     *
+     * 查询是否有线程正在等待跟这个条件关联的锁。注意因为超时和中断可能随时发生，
+     * 返回true不保证将来的信号会唤醒任何线程。这个方法主要设计用来监控系统状态。
      *
      * @param condition the condition
      * @return {@code true} if there are any waiting threads
@@ -1706,6 +1724,9 @@ public class ReentrantReadWriteLock
      * serves only as an upper bound on the actual number of waiters.
      * This method is designed for use in monitoring of the system
      * state, not for synchronization control.
+     *
+     * 返回一个估算的正在等待跟这个条件相关的锁的线程数量。注意因为超时和中断可能随时发生，
+     * 估算中能作为等待数量的上界。这个方法用来监控系统状态，而不是同步控制。
      *
      * @param condition the condition
      * @return the estimated number of waiting threads
@@ -1732,6 +1753,9 @@ public class ReentrantReadWriteLock
      * facilitate construction of subclasses that provide more
      * extensive condition monitoring facilities.
      *
+     * 返回一个包含可能正在等待跟这个条件相关的锁的线程集合。因为真实的线程可能动态的改变，
+     * 当构建这个结果的时候，返回的集合元素只是最大程序的估算。返回集合的元素没有特定的顺序。
+     * 这个方法被用来方便子类构建更具有扩展性的锁监控.
      * @param condition the condition
      * @return the collection of threads
      * @throws IllegalMonitorStateException if this lock is not held
