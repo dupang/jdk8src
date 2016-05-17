@@ -1365,6 +1365,9 @@ public class ReentrantReadWriteLock
          * not the holder of this lock then {@link
          * IllegalMonitorStateException} is thrown.
          *
+         * 试图释放锁。
+         * 如果当前线程持有锁，那么持有数量减1.如果持有现在是0，那么锁被
+         * 释放。如果当前不是锁的持有者。那么抛出IllegalMonitorStateException异常。
          * @throws IllegalMonitorStateException if the current thread does not
          * hold this lock
          */
@@ -1380,7 +1383,9 @@ public class ReentrantReadWriteLock
          * Object#wait() wait}, {@link Object#notify notify}, and {@link
          * Object#notifyAll notifyAll}) when used with the built-in
          * monitor lock.
-         *
+         * 返回这个锁的一个条件实例。
+         * 返回的条件实例支持像Object.wait()，Object.notify(),Object.notifyAll,
+         * 一样的用法，
          * <ul>
          *
          * <li>If this write lock is not held when any {@link
@@ -1393,23 +1398,38 @@ public class ReentrantReadWriteLock
          * could unblock it will not be able to acquire the write
          * lock.)
          *
+         * 如果不持有写锁，那么调用Condition方法就会抛出IllegalMonitorStateException异常。
+         * (持有读锁独立于写锁，所以不受影响。但是当当前线程持有读锁的时候。
+         * 调用Contidion方法总是引起错误，因为其它线程可以解锁它，它将获取不到写锁。)
+         *
          * <li>When the condition {@linkplain Condition#await() waiting}
          * methods are called the write lock is released and, before
          * they return, the write lock is reacquired and the lock hold
          * count restored to what it was when the method was called.
+         *
+         * 当Condition.await()调用时，写锁被释放，并且在写锁被重新获取之前，
+         * 写锁被重新获取，并且写锁持有数量被恢复到原来到调用等待方法的的值
          *
          * <li>If a thread is {@linkplain Thread#interrupt interrupted} while
          * waiting then the wait will terminate, an {@link
          * InterruptedException} will be thrown, and the thread's
          * interrupted status will be cleared.
          *
+         * 如果一个线程正在等待被中断，那么等待就会结束，一个InterruptedException
+         * 就会被抛出。并且中断状态将会被清除。
+         *
          * <li> Waiting threads are signalled in FIFO order.
+         *
+         * 等待的线程以先进先出的顺序被唤醒。
          *
          * <li>The ordering of lock reacquisition for threads returning
          * from waiting methods is the same as for threads initially
          * acquiring the lock, which is in the default case not specified,
          * but for <em>fair</em> locks favors those threads that have been
          * waiting the longest.
+         *
+         * 锁从等待方法返回时重新获取的顺序，跟锁被开始获取的顺序一样。
+         * 也就是以默认的方式，但是对于公平的锁，更倾向于等待时间最长的时间的锁。
          *
          * </ul>
          *
@@ -1438,7 +1458,8 @@ public class ReentrantReadWriteLock
          * Queries if this write lock is held by the current thread.
          * Identical in effect to {@link
          * ReentrantReadWriteLock#isWriteLockedByCurrentThread}.
-         *
+         * 查询这个写锁是否被当前线程持有。和ReentrantReadWriteLock.isWriteLockedByCurrentThread
+         * 一样。
          * @return {@code true} if the current thread holds this lock and
          *         {@code false} otherwise
          * @since 1.6
@@ -1453,6 +1474,9 @@ public class ReentrantReadWriteLock
          * that is not matched by an unlock action.  Identical in effect
          * to {@link ReentrantReadWriteLock#getWriteHoldCount}.
          *
+         * 查询当前线程持有的写锁数量。A thread has a hold on a lock for each lock action
+         * that is not matched by an unlock action。和ReentrantReadWriteLock.
+         * getWriteHoldCount方法一样。
          * @return the number of holds on this lock by the current thread,
          *         or zero if this lock is not held by the current thread
          * @since 1.6
@@ -1483,6 +1507,10 @@ public class ReentrantReadWriteLock
      * This method is designed to facilitate construction of
      * subclasses that provide more extensive lock monitoring
      * facilities.
+     * 返回当前持有锁的线程，或者null如果没有线程持有。当时这个方法
+     * 被不是持有锁的线程调用时，反返回值大概反应了这个锁的状态。
+     * 例如，锁的持有者可能暂时null,即使有线程正在试图获取锁，但是还没有成功。
+     * 这个类被设计用来帮助子类构建更扩展的锁监控.
      *
      * @return the owner, or {@code null} if not owned
      */
@@ -1494,6 +1522,10 @@ public class ReentrantReadWriteLock
      * Queries the number of read locks held for this lock. This
      * method is designed for use in monitoring system state, not for
      * synchronization control.
+     *
+     * 查询持有这个锁的读锁数量.这个方法被设计用来监控系统状态,也不是
+     * 同步控制.
+     *
      * @return the number of read locks held
      */
     public int getReadLockCount() {
@@ -1504,7 +1536,8 @@ public class ReentrantReadWriteLock
      * Queries if the write lock is held by any thread. This method is
      * designed for use in monitoring system state, not for
      * synchronization control.
-     *
+     * 查询是否有线程持有这个写锁,这个方法被设计用来监控系统状态,而不是为了
+     * 同步控制.
      * @return {@code true} if any thread holds the write lock and
      *         {@code false} otherwise
      */
@@ -1514,7 +1547,7 @@ public class ReentrantReadWriteLock
 
     /**
      * Queries if the write lock is held by the current thread.
-     *
+     * 查询是否写锁被当前线程持有.
      * @return {@code true} if the current thread holds the write lock and
      *         {@code false} otherwise
      */
@@ -1527,6 +1560,9 @@ public class ReentrantReadWriteLock
      * current thread.  A writer thread has a hold on a lock for
      * each lock action that is not matched by an unlock action.
      *
+     * 查询当前线程持有写锁的数量 .A writer thread has a hold on a lock for
+     * each lock action that is not matched by an unlock action
+     *
      * @return the number of holds on the write lock by the current thread,
      *         or zero if the write lock is not held by the current thread
      */
@@ -1537,6 +1573,9 @@ public class ReentrantReadWriteLock
     /**
      * Queries the number of reentrant read holds on this lock by the
      * current thread.  A reader thread has a hold on a lock for
+     * each lock action that is not matched by an unlock action.
+     *
+     * 查询当前线程持有读锁的数量,A reader thread has a hold on a lock for
      * each lock action that is not matched by an unlock action.
      *
      * @return the number of holds on the read lock by the current thread,
@@ -1555,7 +1594,9 @@ public class ReentrantReadWriteLock
      * returned collection are in no particular order.  This method is
      * designed to facilitate construction of subclasses that provide
      * more extensive lock monitoring facilities.
-     *
+     * 返回一个可能正在等待这个写锁的集合,因为真实线程集可能动态改变当
+     * 构建这个结果的时候,返回的集合只是一个大概.返回的集合元素没有特定
+     * 的顺序.这个方法被用来方便子类构建更具有扩展性的锁监控.
      * @return the collection of threads
      */
     protected Collection<Thread> getQueuedWriterThreads() {
