@@ -1173,6 +1173,7 @@ class Thread implements Runnable {
      *     这个方法最初设计用来销毁线程而不做任何清理操作。这个线程持有的任何监视器仍然锁着。然而这个方法
      *     从来没有实现。如果要实现，它可能像suspend一样引起死锁。当目标线程被销毁的时候，它正持有着
      *     保护系统关键资源的锁，那么将没有线程能访问这个资源。如果其它线程试图获取锁中这个资源，将会发生死锁。
+     *     这样的死锁通常表明它们自己是"冻着"的过程。
      * @throws NoSuchMethodError always
      */
     @Deprecated
@@ -1184,6 +1185,8 @@ class Thread implements Runnable {
      * Tests if this thread is alive. A thread is alive if it has
      * been started and has not yet died.
      *
+     * 检测这个线程是否活着。如果线程已经启动并且还没有死去，这个线程
+     * 就是活的。
      * @return  <code>true</code> if this thread is alive;
      *          <code>false</code> otherwise.
      */
@@ -1191,13 +1194,20 @@ class Thread implements Runnable {
 
     /**
      * Suspends this thread.
+     * 暂停这个线程
      * <p>
      * First, the <code>checkAccess</code> method of this thread is called
      * with no arguments. This may result in throwing a
      * <code>SecurityException </code>(in the current thread).
      * <p>
+     *
+     *  首先这个线程的checkAccess方法被调用。这可能导致抛出
+     *  SecurityException异常(在当前线程中)
+     *
      * If the thread is alive, it is suspended and makes no further
      * progress unless and until it is resumed.
+     *
+     * 如果线程是活的，这个线程被暂停并且不再做其它操作除非它被恢复。
      *
      * @exception  SecurityException  if the current thread cannot modify
      *               this thread.
@@ -1212,6 +1222,11 @@ class Thread implements Runnable {
      *   For more information, see
      *   <a href="{@docRoot}/../technotes/guides/concurrency/threadPrimitiveDeprecation.html">Why
      *   are Thread.stop, Thread.suspend and Thread.resume Deprecated?</a>.
+     *
+     *   这个方法已经被废弃了，因为它天生可能死锁。如果目标线程持有一个保护关键系统资源的锁的监视器，
+     *   当它被暂时了，没有线程能访问这个资源，直到目标线程被恢复。如果能恢复目标线程的
+     *   线程调用resume方法之前试图锁着监视器，那么就会发生死锁。这样的死锁通过表示他们
+     *   一个"冻着"的过程。
      */
     @Deprecated
     public final void suspend() {
@@ -1221,13 +1236,20 @@ class Thread implements Runnable {
 
     /**
      * Resumes a suspended thread.
+     * 恢复一个暂时的线程。
+     *
      * <p>
      * First, the <code>checkAccess</code> method of this thread is called
      * with no arguments. This may result in throwing a
      * <code>SecurityException</code> (in the current thread).
      * <p>
+     *
+     * 首先，这个线程的checkAccess的方法被调用。这可能抛出一个SecurityException异常(在当前线程中)
+     *
      * If the thread is alive but suspended, it is resumed and is
      * permitted to make progress in its execution.
+     *
+     * 如果线程活着但是被暂时了，它被恢复并且允许它继续执行下去。
      *
      * @exception  SecurityException  if the current thread cannot modify this
      *               thread.
@@ -1238,6 +1260,8 @@ class Thread implements Runnable {
      *     For more information, see
      *     <a href="{@docRoot}/../technotes/guides/concurrency/threadPrimitiveDeprecation.html">Why
      *     are Thread.stop, Thread.suspend and Thread.resume Deprecated?</a>.
+     *
+     *     这个方法仅仅为了suspend存在。这suspend已经因为死锁原因被废弃了。
      */
     @Deprecated
     public final void resume() {
@@ -1247,14 +1271,23 @@ class Thread implements Runnable {
 
     /**
      * Changes the priority of this thread.
+     *
+     * 改变这个线程的优先级
+     *
      * <p>
      * First the <code>checkAccess</code> method of this thread is called
      * with no arguments. This may result in throwing a
      * <code>SecurityException</code>.
      * <p>
+     *
+     * 首先调用这个线程的checkAccess方法。这可能导致SecurityException异常。
+     *
      * Otherwise, the priority of this thread is set to the smaller of
      * the specified <code>newPriority</code> and the maximum permitted
      * priority of the thread's thread group.
+     *
+     * 否则，这个线程的优先级被设置成指定的值和这个线程组允许的最大值之间的
+     * 最小值。
      *
      * @param newPriority priority to set this thread to
      * @exception  IllegalArgumentException  If the priority is not in the
@@ -1286,6 +1319,8 @@ class Thread implements Runnable {
     /**
      * Returns this thread's priority.
      *
+     * 返回这个线程的优先级
+     *
      * @return  this thread's priority.
      * @see     #setPriority
      */
@@ -1296,10 +1331,15 @@ class Thread implements Runnable {
     /**
      * Changes the name of this thread to be equal to the argument
      * <code>name</code>.
+     *
+     * 改变这个线程的名字。
+     *
      * <p>
      * First the <code>checkAccess</code> method of this thread is called
      * with no arguments. This may result in throwing a
      * <code>SecurityException</code>.
+     *
+     * 首先调用这个线程的checkAccess方法。这可能抛出SecurityException异常。
      *
      * @param      name   the new name for this thread.
      * @exception  SecurityException  if the current thread cannot modify this
@@ -1318,6 +1358,8 @@ class Thread implements Runnable {
     /**
      * Returns this thread's name.
      *
+     * 返回线程的名字
+     *
      * @return  this thread's name.
      * @see     #setName(String)
      */
@@ -1329,6 +1371,8 @@ class Thread implements Runnable {
      * Returns the thread group to which this thread belongs.
      * This method returns null if this thread has died
      * (been stopped).
+     *
+     * 返回这个线程所属的组。如果这个线程死掉那么返回null.
      *
      * @return  this thread's thread group.
      */
@@ -1342,11 +1386,18 @@ class Thread implements Runnable {
      * subgroups. Recursively iterates over all subgroups in the current
      * thread's thread group.
      *
+     * 返回当前线程所在的组和它的子组里活跃线程的一个估算值，遍历当前线程
+     * 所有的子组。
+     *
      * <p> The value returned is only an estimate because the number of
      * threads may change dynamically while this method traverses internal
      * data structures, and might be affected by the presence of certain
      * system threads. This method is intended primarily for debugging
      * and monitoring purposes.
+     *
+     * 返回的值仅仅是一个估算值，因为线程数量可能动态地改变，当这个方法
+     * 遍历内部数据结构的时候，并且可能受一些系统线程存在的影响。这个方法
+     * 主要用来高度和监控目的。
      *
      * @return  an estimate of the number of active threads in the current
      *          thread's thread group and in any other thread group that
@@ -1362,6 +1413,9 @@ class Thread implements Runnable {
      * invokes the {@link java.lang.ThreadGroup#enumerate(Thread[])}
      * method of the current thread's thread group.
      *
+     * 把这个线程所在组和子组里所有活动线程拷贝进指定的数组。这个方法简单
+     * 地调用所在线程组的enumerate(Thread[])方法。
+     *
      * <p> An application might use the {@linkplain #activeCount activeCount}
      * method to get an estimate of how big the array should be, however
      * <i>if the array is too short to hold all the threads, the extra threads
@@ -1370,8 +1424,14 @@ class Thread implements Runnable {
      * invoker should verify that the returned int value is strictly less
      * than the length of {@code tarray}.
      *
+     * 一个应该程序可以用activeCount方法来获取这个数据应该多大的大概值，然而如果
+     * 数组太短而不能保存所有的线程，多余的线程被忽略。如果获取当前线程和子线程
+     * 的每一个线程是重要的，调用者应该验证返回值比数组长度小。
+     *
      * <p> Due to the inherent race condition in this method, it is recommended
      * that the method only be used for debugging and monitoring purposes.
+     *
+     * 因为这个方法天生地竞争条件，建议这个方法仅仅用来调试和监控目的。
      *
      * @param  tarray
      *         an array into which to put the list of threads
@@ -1389,6 +1449,7 @@ class Thread implements Runnable {
     /**
      * Counts the number of stack frames in this thread. The thread must
      * be suspended.
+     * 统计这个线程的栈帧。这个线程必需被暂停。
      *
      * @return     the number of stack frames in this thread.
      * @exception  IllegalThreadStateException  if this thread is not
@@ -1396,6 +1457,9 @@ class Thread implements Runnable {
      * @deprecated The definition of this call depends on {@link #suspend},
      *             which is deprecated.  Further, the results of this call
      *             were never well-defined.
+     *
+     *             这个方法的定义依赖于已经被废弃的suspend方法。并且，这个方法
+     *             的结果从来没有被好好定义过。
      */
     @Deprecated
     public native int countStackFrames();
@@ -1404,11 +1468,17 @@ class Thread implements Runnable {
      * Waits at most {@code millis} milliseconds for this thread to
      * die. A timeout of {@code 0} means to wait forever.
      *
+     * 最多等待这个线程死去指定的毫秒数，超时时间为0意为着永远等待。
+     *
      * <p> This implementation uses a loop of {@code this.wait} calls
      * conditioned on {@code this.isAlive}. As a thread terminates the
      * {@code this.notifyAll} method is invoked. It is recommended that
      * applications not use {@code wait}, {@code notify}, or
      * {@code notifyAll} on {@code Thread} instances.
+     *
+     * 这个实现利用循环调用this.wait，通过判断this。isAlive方法。就像一个
+     * 线程终结被调用的notifyAll方法。建议程序不要使用wait，notify，或者
+     * notifyAll对线程实例。
      *
      * @param  millis
      *         the time to wait in milliseconds
@@ -1493,12 +1563,15 @@ class Thread implements Runnable {
     /**
      * Waits for this thread to die.
      *
+     * 等待这个线程死掉。
      * <p> An invocation of this method behaves in exactly the same
      * way as the invocation
      *
      * <blockquote>
      * {@linkplain #join(long) join}{@code (0)}
      * </blockquote>
+     *
+     * 调用这个方法的结果跟调用join(0)方法是一样的。
      *
      * @throws  InterruptedException
      *          if any thread has interrupted the current thread. The
@@ -1512,6 +1585,8 @@ class Thread implements Runnable {
     /**
      * Prints a stack trace of the current thread to the standard error stream.
      * This method is used only for debugging.
+     *
+     * 打印当前线程的栈轨迹到标准的错误的流，这个方法仅仅被用来调试。
      *
      * @see     Throwable#printStackTrace()
      */
