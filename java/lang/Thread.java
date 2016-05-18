@@ -1865,17 +1865,28 @@ class Thread implements Runnable {
      * The returned stack traces are in the format specified for
      * the {@link #getStackTrace getStackTrace} method.
      *
+     * 返回所有活动的线程的栈轨迹map.map的key是线程对象，并且map的值是StackTraceElement
+     * 的代表对应线程的栈存储。
+     * 返回的栈轨迹以getStackTrace方法返回的形式。
+     *
      * <p>The threads may be executing while this method is called.
      * The stack trace of each thread only represents a snapshot and
      * each stack trace may be obtained at different time.  A zero-length
      * array will be returned in the map value if the virtual machine has
      * no stack trace information about a thread.
      *
+     * 当这个方法被调用的时候，线程可能正在运行。每一个线程的栈轨迹仅仅代表一个快照并且
+     * 每一个栈轨迹可能在不同的时间获取。一个零长度的数组将被返回如果虚拟机没有关于线程的
+     * 栈轨迹
+     *
      * <p>If there is a security manager, then the security manager's
      * <tt>checkPermission</tt> method is called with a
      * <tt>RuntimePermission("getStackTrace")</tt> permission as well as
      * <tt>RuntimePermission("modifyThreadGroup")</tt> permission
      * to see if it is ok to get the stack trace of all threads.
+     *
+     * 如果存在安全管理器，那么安全管理器的checkPermission方法被调用，来查看是否被允许
+     * 获取所有线程的栈轨迹。
      *
      * @return a <tt>Map</tt> from <tt>Thread</tt> to an array of
      * <tt>StackTraceElement</tt> that represents the stack trace of
@@ -1938,6 +1949,9 @@ class Thread implements Runnable {
      * without violating security constraints: the subclass must not override
      * security-sensitive non-final methods, or else the
      * "enableContextClassLoaderOverride" RuntimePermission is checked.
+     *
+     * 检查这个实现(可能是子类)是否可以被构造而没有违反安全约束:子类必需不有重写安敏感的
+     * 非final的方法，否则enableContextClassLoaderOverride被检查。
      */
     private static boolean isCCLOverridden(Class<?> cl) {
         if (cl == Thread.class)
@@ -1958,6 +1972,10 @@ class Thread implements Runnable {
      * Performs reflective checks on given subclass to verify that it doesn't
      * override security-sensitive non-final methods.  Returns true if the
      * subclass overrides any of the methods, false otherwise.
+     *
+     * 对给定的子类执行反射检查确保它没有重写安全敏感的非final方法。如果重写了任何一个这样的方法，
+     * 就返回true,否则返回false;
+     *
      */
     private static boolean auditSubclass(final Class<?> subcl) {
         Boolean result = AccessController.doPrivileged(
@@ -1995,6 +2013,9 @@ class Thread implements Runnable {
      * The thread ID is unique and remains unchanged during its lifetime.
      * When a thread is terminated, this thread ID may be reused.
      *
+     * 返回这个线程的标示符。线程ID是在线程创建时候生成的正的long类型的数字。
+     * 线程Id是唯一的，并且在生命周期中保持不变。但一个线程被终结了，这个线程ID可能被重用。
+     *
      * @return this thread's ID.
      * @since 1.5
      */
@@ -2004,34 +2025,50 @@ class Thread implements Runnable {
 
     /**
      * A thread state.  A thread can be in one of the following states:
+     *
+     * 一个线程状态。一个线程可以是下面状态中的一种。
+     *
      * <ul>
      * <li>{@link #NEW}<br>
      *     A thread that has not yet started is in this state.
      *     </li>
+     *     还没有开始。
      * <li>{@link #RUNNABLE}<br>
      *     A thread executing in the Java virtual machine is in this state.
      *     </li>
+     *     正在虚拟机里执行。
+     *
      * <li>{@link #BLOCKED}<br>
      *     A thread that is blocked waiting for a monitor lock
      *     is in this state.
      *     </li>
+     *     正在等待监视锁而被阻塞。
+     *
      * <li>{@link #WAITING}<br>
      *     A thread that is waiting indefinitely for another thread to
      *     perform a particular action is in this state.
      *     </li>
+     *     这个状态表示这个线程正在无限期地等待另一个线程执行一个特定的操作。
+     *
      * <li>{@link #TIMED_WAITING}<br>
      *     A thread that is waiting for another thread to perform an action
      *     for up to a specified waiting time is in this state.
-     *     </li>
+     *     </li>’
+     *     这个状态表示这个线程正在等待另一个线程执行操作。最多等待指定的时间。
+     *
      * <li>{@link #TERMINATED}<br>
      *     A thread that has exited is in this state.
      *     </li>
      * </ul>
+     *     一个线程已经退出了
      *
      * <p>
      * A thread can be in only one state at a given point in time.
      * These states are virtual machine states which do not reflect
      * any operating system thread states.
+     *
+     * 线程在特定的时间只可以处于一种状态。这个状态是虚拟仙的状态，不返回操作系统的
+     * 线程状态。
      *
      * @since   1.5
      * @see #getState
@@ -2039,6 +2076,8 @@ class Thread implements Runnable {
     public enum State {
         /**
          * Thread state for a thread which has not yet started.
+         *
+         * 还没有开始运行的状态
          */
         NEW,
 
@@ -2047,6 +2086,9 @@ class Thread implements Runnable {
          * state is executing in the Java virtual machine but it may
          * be waiting for other resources from the operating system
          * such as processor.
+         *
+         * 表示一个线程可以运行了，一个处于运行中的状态的线程，表明这个线程正在虚拟机里
+         * 执行但是可能正在等待来自操作系统的其它资源比如说是处理器。
          */
         RUNNABLE,
 
@@ -2056,6 +2098,11 @@ class Thread implements Runnable {
          * to enter a synchronized block/method or
          * reenter a synchronized block/method after calling
          * {@link Object#wait() Object.wait}.
+         *
+         * 表示线程因为等待监控锁而阻塞的线程状态。一个正在处于阻塞状态的线程正在等待
+         * 一个监控锁来进入一个两步块/方法或再次进入一个同步块/方法。在调用了wait方法
+         * 之后。
+         *
          */
         BLOCKED,
 
@@ -2077,6 +2124,17 @@ class Thread implements Runnable {
          * <tt>Object.notify()</tt> or <tt>Object.notifyAll()</tt> on
          * that object. A thread that has called <tt>Thread.join()</tt>
          * is waiting for a specified thread to terminate.
+         *
+         * 等待线程的状态
+         * 一个线程由于调用下面中的一个方法而处于等待状态：
+         * 没有超时参数的Object.wait方法
+         * 没有超时参数的Thread的join方法
+         * LockSupport.park
+         *
+         * 处于等待状态的线程表明这个线程正在等待其它线程执行一个特定的操作。
+         * 例如，一个线程已经调用了一个对象的Object.wait()方法正在等待其它
+         * 线程调用这个对象的Object.notiry或者Object.notifyAll方法。一个线程已经调用了Thread.join()
+         * 方法正在等待一个指定的线程结束。
          */
         WAITING,
 
@@ -2091,12 +2149,23 @@ class Thread implements Runnable {
          *   <li>{@link LockSupport#parkNanos LockSupport.parkNanos}</li>
          *   <li>{@link LockSupport#parkUntil LockSupport.parkUntil}</li>
          * </ul>
+         *
+         * 这个状态表明线程正在等待指定时间长度。一个线程处于有限时间的等待由于调用了下面其中
+         * 一个方法以指定的正的等待时间。
+         * Thread.sleep
+         * Object.wait(long)
+         * Thread.join(long)
+         * LockSupport.parkNanos
+         * LockSupport.parkUntil
          */
         TIMED_WAITING,
 
         /**
          * Thread state for a terminated thread.
          * The thread has completed execution.
+         *
+         * 终结的线程的状态。
+         * 这个线程已经执行完毕。
          */
         TERMINATED;
     }
@@ -2105,6 +2174,8 @@ class Thread implements Runnable {
      * Returns the state of this thread.
      * This method is designed for use in monitoring of the system state,
      * not for synchronization control.
+     *
+     * 反回这个线程的状态。这个方法设计用来监控系统状态。而不是为了同步控制。
      *
      * @return this thread's state.
      * @since 1.5
@@ -2133,6 +2204,10 @@ class Thread implements Runnable {
      * the invocation to the {@linkplain #getDefaultUncaughtExceptionHandler
      * default uncaught exception handler}.
      *
+     * 当一个线程因为未捕获的异常而突然中断而为拦截器提供的接口
+     * 当一个线程因为未捕获的异常而要终结的时候，Java虚拟机将会为UncaughtExceptionHandler查询这个
+     * 线程的getUncaughtExceptionHandler方法，并且调用拦截器的uncaughtException方法，传给这个方法
+     * 以异常做为参数
      * @see #setDefaultUncaughtExceptionHandler
      * @see #setUncaughtExceptionHandler
      * @see ThreadGroup#uncaughtException
@@ -2145,6 +2220,9 @@ class Thread implements Runnable {
          * given uncaught exception.
          * <p>Any exception thrown by this method will be ignored by the
          * Java Virtual Machine.
+         *
+         * 当因为未捕获的异常线程将要结束的时候调用有的方法。
+         * 这个方法抛出的异常将会被Java虚拟机忽略。
          * @param t the thread
          * @param e the exception
          */
@@ -2152,15 +2230,20 @@ class Thread implements Runnable {
     }
 
     // null unless explicitly set
+    //null除非显示地设置了这个值。
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
 
     // null unless explicitly set
+    //null除非显示地设置了这个值。
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler;
 
     /**
      * Set the default handler invoked when a thread abruptly terminates
      * due to an uncaught exception, and no other handler has been defined
      * for that thread.
+     *
+     * 设置当线程因为为未捕获的异常而突然中止的时候调用的默认的拦截器，并且没有
+     * 为这个线程设置其它拦截器
      *
      * <p>Uncaught exception handling is controlled first by the thread, then
      * by the thread's {@link ThreadGroup} object and finally by the default
@@ -2175,9 +2258,18 @@ class Thread implements Runnable {
      * already accept whatever &quot;default&quot; behavior the system
      * provided.
      *
+     * 未捕获的异常处理首先被线程处理，然后被线程的线程组并且最后被默认的未捕获异常拦截器。
+     * 如果这个线程没有显式设置未捕获异常拦截器，并且线程的线程组(包括父线程的线程组)没有指定
+     * 它的uncaughtException方法，那么默认的拦截器的uncaughtException将会被调用。
+     *
+     * 通过设置默认的未捕获异常拦截器，应用程序可以改变未捕获异常的处理方式(例如记录日志到指定的设置
+     * 或文件)，为这些已经接受了系统提示的任何的默认行为的线程。
+     *
      * <p>Note that the default uncaught exception handler should not usually
      * defer to the thread's <tt>ThreadGroup</tt> object, as that could cause
      * infinite recursion.
+     *
+     * 注意默认的未捕获异常拦截器通常不应该听众线程的ThreadGroup对象。因为那样可能导致无限的递归。
      *
      * @param eh the object to use as the default uncaught exception handler.
      * If <tt>null</tt> then there is no default handler.
@@ -2206,6 +2298,9 @@ class Thread implements Runnable {
      * Returns the default handler invoked when a thread abruptly terminates
      * due to an uncaught exception. If the returned value is <tt>null</tt>,
      * there is no default.
+     *
+     * 返回当线程因为未捕获的异常而突然中止时被调用遥拦截器。如果返回值为null,那就是没有默认拦截器。
+     *
      * @since 1.5
      * @see #setDefaultUncaughtExceptionHandler
      * @return the default uncaught exception handler for all threads
@@ -2220,6 +2315,9 @@ class Thread implements Runnable {
      * uncaught exception handler explicitly set then this thread's
      * <tt>ThreadGroup</tt> object is returned, unless this thread
      * has terminated, in which case <tt>null</tt> is returned.
+     *
+     * 返回线程因为未捕获的异常而突然中止时被调用的拦截器。如果线程没有设置未捕获异常
+     * 拦截器，那么这个线程的ThreadGroup被返回。除非这个线程已经中止了，这时会返回null.
      * @since 1.5
      * @return the uncaught exception handler for this thread
      */
@@ -2235,6 +2333,11 @@ class Thread implements Runnable {
      * exceptions by having its uncaught exception handler explicitly set.
      * If no such handler is set then the thread's <tt>ThreadGroup</tt>
      * object acts as its handler.
+     *
+     * 设置当线程因为未捕获的异常而突然中止时被调用的异常。一个线程可以通过显式地设置
+     * 未捕获异常拦截器来完全掌控它怎么响应未捕获的异常。
+     * 如果没有设置这个拦截器，那么线程的ThreadGroup作为它的拦截器。
+     *
      * @param eh the object to use as this thread's uncaught exception
      * handler. If <tt>null</tt> then this thread has no explicit handler.
      * @throws  SecurityException  if the current thread is not allowed to
@@ -2251,6 +2354,7 @@ class Thread implements Runnable {
     /**
      * Dispatch an uncaught exception to the handler. This method is
      * intended to be called only by the JVM.
+     * 分配一个未捕获的获异常给这个拦截器。这个方法应该只被虚拟机调用。
      */
     private void dispatchUncaughtException(Throwable e) {
         getUncaughtExceptionHandler().uncaughtException(this, e);
@@ -2259,6 +2363,7 @@ class Thread implements Runnable {
     /**
      * Removes from the specified map any keys that have been enqueued
      * on the specified reference queue.
+     * 从指定的map中移除任何已经在指定的引用队列中的键。
      */
     static void processQueue(ReferenceQueue<Class<?>> queue,
                              ConcurrentMap<? extends
@@ -2277,12 +2382,16 @@ class Thread implements Runnable {
         /**
          * saved value of the referent's identity hash code, to maintain
          * a consistent hash code after the referent has been cleared
+         *
+         * 保存引用的hashcode值，在引用已经被清除之后维护一个一致的hashcode.
+         *
          */
         private final int hash;
 
         /**
          * Create a new WeakClassKey to the given object, registered
          * with a queue.
+         * 创建一个给定对象新的WeakClassKey，注册到一个队列中。
          */
         WeakClassKey(Class<?> cl, ReferenceQueue<Class<?>> refQueue) {
             super(cl, refQueue);
@@ -2291,6 +2400,7 @@ class Thread implements Runnable {
 
         /**
          * Returns the identity hash code of the original referent.
+         * 返回原始引用的hashcode
          */
         @Override
         public int hashCode() {
@@ -2302,6 +2412,9 @@ class Thread implements Runnable {
          * WeakClassKey instance, or, if this object's referent has not
          * been cleared, if the given object is another WeakClassKey
          * instance with the identical non-null referent as this one.
+         *
+         * 返回true，如果给定的对象是相同的WeakClassKey实例，或者如果对象的引用没还没
+         * 被清除，如果给定的对象是另一个具有相同的不为null的和这个相同引用的WeakClassKey实例
          */
         @Override
         public boolean equals(Object obj) {
@@ -2325,15 +2438,22 @@ class Thread implements Runnable {
     // concurrent code, and we can not risk accidental false sharing.
     // Hence, the fields are isolated with @Contended.
 
+    // 下面三个最初没有被初始化的字段被java.util.concurrent.ThreadLocalRandom类
+    // 单独管理。这个字段被用来构建高性能的伪随机数生成器，在并发代码中，并且我们不能冒
+    // 意外错误的风险。因为这个字段被用@Contended注解隔离。
+
     /** The current seed for a ThreadLocalRandom */
+    //一个ThreadLocalRandom的当前种子
     @sun.misc.Contended("tlr")
     long threadLocalRandomSeed;
 
     /** Probe hash value; nonzero if threadLocalRandomSeed initialized */
+    // 探针的哈希值。非零如果threadLocalRandomSeed初始化了。
     @sun.misc.Contended("tlr")
     int threadLocalRandomProbe;
 
     /** Secondary seed isolated from public ThreadLocalRandom sequence */
+    // 和公共的ThreadLocalRandom 序列隔离开的次要的种子。
     @sun.misc.Contended("tlr")
     int threadLocalRandomSecondarySeed;
 
