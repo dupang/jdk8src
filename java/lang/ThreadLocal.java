@@ -37,10 +37,17 @@ import java.util.function.Supplier;
  * static fields in classes that wish to associate state with a thread (e.g.,
  * a user ID or Transaction ID).
  *
+ * 这个类提供thread-local的变量。这些变量与他们的普通变量不同在于每一个访问(通过
+ * get或者set方法)的变量线程都存有它自己的一份拷贝。
+ * ThreadLocak实例通常是类中和线程有关的私有的静态字段(比如说一个用户ID或者事务ID)。
+ *
  * <p>For example, the class below generates unique identifiers local to each
  * thread.
  * A thread's id is assigned the first time it invokes {@code ThreadId.get()}
  * and remains unchanged on subsequent calls.
+ *
+ * 例如，下面的类生成每一个线程唯一的本地标示符。
+ * 一个线程的id当第一次调用ThreadId.get()时被赋值，并且在随后的调用时保持不变。
  * <pre>
  * import java.util.concurrent.atomic.AtomicInteger;
  *
@@ -68,6 +75,7 @@ import java.util.function.Supplier;
  * thread-local instances are subject to garbage collection (unless other
  * references to these copies exist).
  *
+ * 每一个线程持有一个内
  * @author  Josh Bloch and Doug Lea
  * @since   1.2
  */
