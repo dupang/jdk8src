@@ -1599,11 +1599,15 @@ class Thread implements Runnable {
      * or a user thread. The Java Virtual Machine exits when the only
      * threads running are all daemon threads.
      *
+     * 标记这个线程是守护线程或用户线程。Java虚拟机退出当只有守护线程的时候。
+     *
      * <p> This method must be invoked before the thread is started.
+     *
+     * 这个方法必需在启动前调用。
      *
      * @param  on
      *         if {@code true}, marks this thread as a daemon thread
-     *
+     *         如果true，就标记这个线程是守护线程。
      * @throws  IllegalThreadStateException
      *          if this thread is {@linkplain #isAlive alive}
      *
@@ -1622,6 +1626,8 @@ class Thread implements Runnable {
     /**
      * Tests if this thread is a daemon thread.
      *
+     * 检测这个线程是否是守护线程。
+     *
      * @return  <code>true</code> if this thread is a daemon thread;
      *          <code>false</code> otherwise.
      * @see     #setDaemon(boolean)
@@ -1633,10 +1639,16 @@ class Thread implements Runnable {
     /**
      * Determines if the currently running thread has permission to
      * modify this thread.
+     *
+     * 判断当前运行的线程是否被允许修改这个线程
+     *
      * <p>
      * If there is a security manager, its <code>checkAccess</code> method
      * is called with this thread as its argument. This may result in
      * throwing a <code>SecurityException</code>.
+     *
+     * 如果有一个安全管理器，它的checkaAccess方法被调用带着this参数。这可能导致
+     * 抛出SecurityException异常
      *
      * @exception  SecurityException  if the current thread is not allowed to
      *               access this thread.
@@ -1653,6 +1665,7 @@ class Thread implements Runnable {
      * Returns a string representation of this thread, including the
      * thread's name, priority, and thread group.
      *
+     * 返回一个代表这个线程的字符串，包含线程名字，优先级，并且线程组
      * @return  a string representation of this thread.
      */
     public String toString() {
@@ -1675,6 +1688,11 @@ class Thread implements Runnable {
      * primordial thread is typically set to the class loader used to load the
      * application.
      *
+     * 返回这个线程的上下文相关的类加载器。这个上下文类加载器被创建线程者提供，
+     * 被运行在这个线程中的代码使用来加载类和资源。如果没有调用setContextClassLoader
+     * 方法设置这个值，默认是父线程的类加载器。新建线程的上下文类加载器通过被设置为
+     * 加载应用程序的类加载器。
+     *
      * <p>If a security manager is present, and the invoker's class loader is not
      * {@code null} and is not the same as or an ancestor of the context class
      * loader, then this method invokes the security manager's {@link
@@ -1682,6 +1700,9 @@ class Thread implements Runnable {
      * method with a {@link RuntimePermission RuntimePermission}{@code
      * ("getClassLoader")} permission to verify that retrieval of the context
      * class loader is permitted.
+     * 如果有一个安全管理器，并且调用者的类加载器不为null，并且不相同或者不是
+     * 不是上下文类加器的祖先。那么这个方法调用安全管理器的checkPermission方法。
+     * 来判断提取上下文类加载器是被允许的。
      *
      * @return  the context ClassLoader for this Thread, or {@code null}
      *          indicating the system class loader (or, failing that, the
@@ -1711,11 +1732,15 @@ class Thread implements Runnable {
      * through {@code getContextClassLoader}, to code running in the thread
      * when loading classes and resources.
      *
+     * 设置这个线程的上下文类加载器。上下文类加载器可以在线程创建的时候被设置，
+     * 并且允许线程的创建者提供合适的类加载器通过getContextClassLoader，
+     *
      * <p>If a security manager is present, its {@link
      * SecurityManager#checkPermission(java.security.Permission) checkPermission}
      * method is invoked with a {@link RuntimePermission RuntimePermission}{@code
      * ("setContextClassLoader")} permission to see if setting the context
      * ClassLoader is permitted.
+     * 如果存在安全管理器，它的checkPermission广场被调用来判断设置类加载器是否被允许。
      *
      * @param  cl
      *         the context ClassLoader for this Thread, or null  indicating the
@@ -1738,11 +1763,15 @@ class Thread implements Runnable {
      * Returns <tt>true</tt> if and only if the current thread holds the
      * monitor lock on the specified object.
      *
+     * 返回true如果有且仅有当前线程持有指定对象上有监控锁。
+     *
      * <p>This method is designed to allow a program to assert that
      * the current thread already holds a specified lock:
      * <pre>
      *     assert Thread.holdsLock(obj);
      * </pre>
+     *
+     * 这个方法被设计用来允许一个程序判断当前线程已经持有了指定锁;
      *
      * @param  obj the object on which to test lock ownership
      * @throws NullPointerException if obj is <tt>null</tt>
@@ -1765,18 +1794,28 @@ class Thread implements Runnable {
      * method invocation in the sequence.  The last element of the array
      * represents the bottom of the stack, which is the least recent method
      * invocation in the sequence.
+     * 返回一个代表这个线程存储的栈栈轨迹元素的数组。如果这个线程还没有
+     * 启动，已经启动但是还没有被调度运行，或者已经终结。这个方法就会返回
+     * 一个零长度的数组。
+     * 如果返回的数组是非零长度的那么第一个元素代表栈顶，序列中最近被调用的。
+     * 数组中最后的元素代表栈底，序列中最后被调用。
      *
      * <p>If there is a security manager, and this thread is not
      * the current thread, then the security manager's
      * <tt>checkPermission</tt> method is called with a
      * <tt>RuntimePermission("getStackTrace")</tt> permission
      * to see if it's ok to get the stack trace.
+     * 如果存在安全管理器，并且这个线程不是当前线程，那么安全管理器的
+     * checkPermission方法被调用来查看它是否被允许获取栈轨迹。
      *
      * <p>Some virtual machines may, under some circumstances, omit one
      * or more stack frames from the stack trace.  In the extreme case,
      * a virtual machine that has no stack trace information concerning
      * this thread is permitted to return a zero-length array from this
      * method.
+     *
+     * 一些虚拟机可能在一些情况下，从栈轨迹中删除一个或多个栈帧。更极端的
+     * 情况下，虚拟机中没有关于这个线程的栈信息的允许返回一个零长度的数组。
      *
      * @return an array of <tt>StackTraceElement</tt>,
      * each represents one stack frame.
