@@ -34,10 +34,14 @@ import sun.misc.VM;
  * group can also include other thread groups. The thread groups form
  * a tree in which every thread group except the initial thread group
  * has a parent.
+ * 一个线程组代表一组线程。此外，一个线程组可以包含其它线程组。线程组形成一个树状结构
+ * ，这个结构中每一个线程组都有一个父亲，除非初始线程组。
  * <p>
  * A thread is allowed to access information about its own thread
  * group, but not to access information about its thread group's
  * parent thread group or any other thread groups.
+ *
+ * 一个线程允许访问它自己的线程组。但不能访问线程组的父线程组或其它线程组。
  *
  * @author  unascribed
  * @since   JDK1.0
@@ -52,6 +56,13 @@ import sun.misc.VM;
  * This policy often leads to taking a snapshot of the state of a thread group
  * and working off of that snapshot, rather than holding the thread group locked
  * while we work on the children.
+ *
+ * 这个代码的锁策略是试图只锁树的任何可能的一层，但从树的底部开始。
+ * 也就是说，从孩子线程组到父线程组。这有限制需要持有的锁的好处。并且特别是避免不得不获取根线程组的锁(全局锁)
+ * 。在有很多线程组的多处理器系统中这可能是竞争的源头。
+ * 这个策略经常导致持有的是一个线程组的状态快照，并在这个快照上操作，而不是保持线程组被锁着当我们在孩子上面操作的时候。
+ *
+ *
  */
 public
 class ThreadGroup implements Thread.UncaughtExceptionHandler {
@@ -72,6 +83,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Creates an empty Thread group that is not in any Thread group.
      * This method is used to create the system Thread group.
+     * 创建一个没有任何线程组的空线程组。
+     * 这个方法被用来创建系统线程组。
      */
     private ThreadGroup() {     // called from C code
         this.name = "system";
@@ -85,6 +98,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * <p>
      * The <code>checkAccess</code> method of the parent thread group is
      * called with no arguments; this may result in a security exception.
+     *
+     * 构建一个新的线程组，这个新线程组的父亲是当前运行线程的线程组。
+     * 父线程组的没有参数的checkAccess方法被调用,这可能导致抛出安全异常。
      *
      * @param   name   the name of the new thread group.
      * @exception  SecurityException  if the current thread cannot create a
@@ -102,6 +118,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * <p>
      * The <code>checkAccess</code> method of the parent thread group is
      * called with no arguments; this may result in a security exception.
+     *
+     * 创建一个新的线程组，新线程组的父亲，是参数指定的线程组。
+     * 父线程组的没有参数的checkAccess方法被调用，这可能导致抛出安全异常。
      *
      * @param     parent   the parent thread group.
      * @param     name     the name of the new thread group.
@@ -127,9 +146,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     /*
-     * @throws  NullPointerException  if the parent argument is {@code null}
+     * @throws  NullPointerException  if the parent argument is {@code null} 如果parent参数为null
      * @throws  SecurityException     if the current thread cannot create a
-     *                                thread in the specified thread group.
+     *                                thread in the specified thread group. 如果当前线程不能在指定的线程组中创建一个线程
      */
     private static Void checkParentAccess(ThreadGroup parent) {
         parent.checkAccess();
@@ -138,6 +157,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
 
     /**
      * Returns the name of this thread group.
+     *
+     * 返回这个线程组的名字。
      *
      * @return  the name of this thread group.
      * @since   JDK1.0
@@ -148,13 +169,19 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
 
     /**
      * Returns the parent of this thread group.
+     *
+     * 返回这个线程组的父亲。
+     *
      * <p>
      * First, if the parent is not <code>null</code>, the
      * <code>checkAccess</code> method of the parent thread group is
      * called with no arguments; this may result in a security exception.
      *
+     * 首先，如果父亲不为null,父线程组的没有参数的checkAccess方法被调用，这可能导致安全异常。
+     *
      * @return  the parent of this thread group. The top-level thread group
      *          is the only thread group whose parent is <code>null</code>.
+     *          这个线程组的父亲。最高层的线程组是仅有的线程组，这个线程组的父亲是null.
      * @exception  SecurityException  if the current thread cannot modify
      *               this thread group.
      * @see        java.lang.ThreadGroup#checkAccess()
@@ -173,6 +200,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * part of this group cannot have a higher priority than the maximum
      * priority.
      *
+     * 返回这个线程组的最大优先级。在这个线程组中的线程的优先级不能比最大优先级更高。
+     *
      * @return  the maximum priority that a thread in this thread group
      *          can have.
      * @see     #setMaxPriority
@@ -187,6 +216,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * daemon thread group is automatically destroyed when its last
      * thread is stopped or its last thread group is destroyed.
      *
+     * 检测这个线程组是否是一个守护线程组。一个守护线程组被自动地销毁，当它的最后一个
+     * 线程结束或它的最后一个线程组销毁。
+     *
      * @return  <code>true</code> if this thread group is a daemon thread group;
      *          <code>false</code> otherwise.
      * @since   JDK1.0
@@ -198,6 +230,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Tests if this thread group has been destroyed.
      *
+     * 检测这个线程组是否被销毁。
+     *
      * @return  true if this object is destroyed
      * @since   JDK1.1
      */
@@ -207,12 +241,18 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
 
     /**
      * Changes the daemon status of this thread group.
+     *
+     * 改变这个线程组的守护状态。
+     *
      * <p>
      * First, the <code>checkAccess</code> method of this thread group is
      * called with no arguments; this may result in a security exception.
      * <p>
      * A daemon thread group is automatically destroyed when its last
      * thread is stopped or its last thread group is destroyed.
+     *
+     * 首先，这个线程组的没有参数的checkAccess方法被执行，这可能导致安全异常。
+     * 一个守护线程组被自动地销毁，当它的最后一个线程结束或它的最后一个线程组销毁。
      *
      * @param      daemon   if <code>true</code>, marks this thread group as
      *                      a daemon thread group; otherwise, marks this
@@ -231,6 +271,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Sets the maximum priority of the group. Threads in the thread
      * group that already have a higher priority are not affected.
+     *
+     * 设置这个线程组的最大优先级。这个线程组里面的线程的优先级比这个高也不受影响。
+     *
      * <p>
      * First, the <code>checkAccess</code> method of this thread group is
      * called with no arguments; this may result in a security exception.
@@ -239,6 +282,11 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * {@link Thread#MIN_PRIORITY} or greater than
      * {@link Thread#MAX_PRIORITY}, the maximum priority of the group
      * remains unchanged.
+     *
+     * 首先，这个线程组的没有参数的checkAccess方法被执行，这可能导致安全异常。
+     * 如果这优先级参数比MIN_PRIORITY小或者比MAX_PRIORITY大，这个线程组的最
+     * 大优先级不会改变。
+     *
      * <p>
      * Otherwise, the priority of this ThreadGroup object is set to the
      * smaller of the specified <code>pri</code> and the maximum permitted
@@ -247,6 +295,10 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * priority is simply set to <code>pri</code>.) Then this method is
      * called recursively, with <code>pri</code> as its argument, for
      * every thread group that belongs to this thread group.
+     *
+     * 否则，这个线程组的优先级被设置成指定的值和这个线程组的父亲允许的最大值中的最小的一个。
+     * (如果这个线程组是一个系统线程组，这样就没有父亲，那么它的最大优先级就简单地设置成指定的
+     * 优先级)，然后这个方法被递归地调用，带着pri参数，为每一个属于这个线程组的组线组。
      *
      * @param      pri   the new priority of the thread group.
      * @exception  SecurityException  if the current thread cannot modify
@@ -281,6 +333,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * Tests if this thread group is either the thread group
      * argument or one of its ancestor thread groups.
      *
+     * 检测这个线程组是否是线程组参数或是这个线程组的祖先
+     *
      * @param   g   a thread group.
      * @return  <code>true</code> if this thread group is the thread group
      *          argument or one of its ancestor thread groups;
@@ -299,10 +353,16 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Determines if the currently running thread has permission to
      * modify this thread group.
+     *
+     * 检查是否当前运行的线程被允许修改这个线程组。
+     *
      * <p>
      * If there is a security manager, its <code>checkAccess</code> method
      * is called with this thread group as its argument. This may result
      * in throwing a <code>SecurityException</code>.
+     *
+     * 如果安全管理器存在，带着线程组的参数的checkAccess方法被调用。这可能导致抛出
+     * SecurityException异常。
      *
      * @exception  SecurityException  if the current thread is not allowed to
      *               access this thread group.
@@ -326,6 +386,11 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * data structures, and might be affected by the presence of certain
      * system threads. This method is intended primarily for debugging
      * and monitoring purposes.
+     *
+     * 返回一个这个线程组和子线程组中活跃的线程估算值。递归遍历这个线程组中所有的子线程组。
+     *
+     * 返回值只是一个估算值，因为线程数可能动态地改变，当这个方法遍历内部数据结构的时候，
+     * 并且可能受系统线程存在的影响。这个方法主要用来调试和监控目的。
      *
      * @return  an estimate of the number of active threads in this thread
      *          group and in any other thread group that has this thread
@@ -368,6 +433,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * {@linkplain #enumerate(Thread[], boolean) enumerate}{@code (list, true)}
      * </blockquote>
      *
+     * 把这个线程组和子线程组的所有活跃线程拷贝到指定的数组中。
+     *
      * @param  list
      *         an array into which to put the list of threads
      *
@@ -392,6 +459,11 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * subgroups are also included. If the array is too short to
      * hold all the threads, the extra threads are silently ignored.
      *
+     * 把这个线程组的所有活跃的线程拷贝到指定的数组中。
+     * 如果recurse是true,这个方法递归地拷贝这个线程组的子线程组，包括子线程组的每一个
+     * 活跃线程的引用。
+     * 如果数组不小而不能放下所胡的线程，那么多出的线程将被忽略。
+     *
      * <p> An application might use the {@linkplain #activeCount activeCount}
      * method to get an estimate of how big the array should be, however
      * <i>if the array is too short to hold all the threads, the extra threads
@@ -399,8 +471,14 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * thread in this thread group, the caller should verify that the returned
      * int value is strictly less than the length of {@code list}.
      *
+     * 一个应该程序可以用activeCount方法来获取这个数据应该多大的大概值，然而如果
+     * 数组太短而不能保存所有的线程，多余的线程被忽略。如果获取当前线程和子线程
+     * 的每一个线程是重要的，调用者应该验证返回值比数组长度小。
+     *
      * <p> Due to the inherent race condition in this method, it is recommended
      * that the method only be used for debugging and monitoring purposes.
+     *
+     * 因为这个方法天生地竞争条件，建议这个方法仅仅用来调试和监控目的。
      *
      * @param  list
      *         an array into which to put the list of threads
@@ -464,6 +542,12 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * thread groups may change dynamically while this method traverses
      * internal data structures. This method is intended primarily for
      * debugging and monitoring purposes.
+     *
+     * 返回当前线程所在的组和它的子组里活跃线程的一个估算值，遍历当前线程
+     * 所有的子组。
+     * 返回的值仅仅是一个估算值，因为线程数量可能动态地改变，当这个方法
+     * 遍历内部数据结构的时候，并且可能受一些系统线程存在的影响。这个方法
+     * 主要用来高度和监控目的。
      *
      * @return  the number of active thread groups with this thread group as
      *          an ancestor
@@ -597,6 +681,10 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * This method then calls the <code>stop</code> method on all the
      * threads in this thread group and in all of its subgroups.
      *
+     * 停止这个线程组中的所有线程。
+     * 首先，这个线程组的没有参数的checkAccess方法被执行，这可能导致安全异常。
+     * 然后这个方法调用这个线程组里面的所有线程的stop方法。
+     *
      * @exception  SecurityException  if the current thread is not allowed
      *               to access this thread group or any of the threads in
      *               the thread group.
@@ -621,6 +709,10 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * <p>
      * This method then calls the <code>interrupt</code> method on all the
      * threads in this thread group and in all of its subgroups.
+     *
+     * 中断这个线程组里所有的线程。
+     * 首先，这个线程组的没有参数的checkAccess方法被执行，这可能导致安全异常。
+     * 然后这个方法调用这个线程组里面的所有线程的interrupt方法。
      *
      * @exception  SecurityException  if the current thread is not allowed
      *               to access this thread group or any of the threads in
@@ -659,6 +751,10 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * This method then calls the <code>suspend</code> method on all the
      * threads in this thread group and in all of its subgroups.
      *
+     * 暂停这个线程组里所有的线程。
+     * 首先，这个线程组的没有参数的checkAccess方法被执行，这可能导致安全异常。
+     * 然后这个方法调用这个线程组里面的所有线程的suspend方法。
+     *
      * @exception  SecurityException  if the current thread is not allowed
      *               to access this thread group or any of the threads in
      *               the thread group.
@@ -682,6 +778,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * subgroups, except the current thread.  This method returns true
      * if (and only if) the current thread is found to be in this thread
      * group or one of its subgroups.
+     *
+     * 帮助方法:递归停止或暂停这个线程组里所有的线程并且它的子线程组，除了当前线程。
+     * 这个方法返回true如果当前线程在这个线程组里或子线程组里。
      */
     @SuppressWarnings("deprecation")
     private boolean stopOrSuspend(boolean suspend) {
@@ -719,6 +818,10 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * <p>
      * This method then calls the <code>resume</code> method on all the
      * threads in this thread group and in all of its sub groups.
+     *
+     * 恢复这个线程组里所有的线程。
+     * 首先，这个线程组的没有参数的checkAccess方法被执行，这可能导致安全异常。
+     * 然后这个方法调用这个线程组里面的所有线程的resume方法。
      *
      * @exception  SecurityException  if the current thread is not allowed to
      *               access this thread group or any of the threads in the
@@ -762,6 +865,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * First, the <code>checkAccess</code> method of this thread group is
      * called with no arguments; this may result in a security exception.
      *
+     * 销毁这个线程组和所有子线程组。这个线程组必需是空的，表示这个线程组里的线程已经被停止了。
+     * 首先，这个线程组的没有参数的checkAccess方法被执行，这可能导致安全异常。
+     *
      * @exception  IllegalThreadStateException  if the thread group is not
      *               empty or if the thread group has already been destroyed.
      * @exception  SecurityException  if the current thread cannot modify this
@@ -801,6 +907,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
 
     /**
      * Adds the specified Thread group to this group.
+     *
+     * 把指定的线程组加入到这个线程组中。
+     *
      * @param g the specified Thread group to be added
      * @exception IllegalThreadStateException If the Thread group has been destroyed.
      */
@@ -824,6 +933,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
 
     /**
      * Removes the specified Thread group from this group.
+     *
+     * 从这个线程组中移除指定的线程组。
+     *
      * @param g the Thread group to be removed
      * @return if this Thread has already been destroyed.
      */
@@ -860,6 +972,9 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * can be collected if they are never started, but they must be
      * counted so that daemon thread groups with unstarted threads in
      * them are not destroyed.
+     * 增加这个线程组中没有开始的线程数量。没有开始的线程没有被加入到线程组中，所以他们
+     * 可以被收集如果他们从来没有开始，但是他们必需被通计，所以带着没有开始线程的线程组
+     * 没有被销毁。
      */
     void addUnstarted() {
         synchronized(this) {
@@ -873,9 +988,14 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Adds the specified thread to this thread group.
      *
+     * 把指定的线程加入到这个线程组里面
+     *
      * <p> Note: This method is called from both library code
      * and the Virtual Machine. It is called from VM to add
      * certain system threads to the system thread group.
+     *
+     * 注意:这个方法被库代码和虚拟机调用。它被虚拟机调用用来把一些系统
+     * 线程加入到系统线程组。
      *
      * @param  t
      *         the Thread to be added
@@ -911,10 +1031,15 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * Notifies the group that the thread {@code t} has failed
      * an attempt to start.
      *
+     * 通过线程组这个线程启动失败。
+     *
      * <p> The state of this thread group is rolled back as if the
      * attempt to start the thread has never occurred. The thread is again
      * considered an unstarted member of the thread group, and a subsequent
      * attempt to start the thread is permitted.
+     *
+     * 这个线程组的状态被回滚，如果不再试图启动一个线程。这个线程再次被当成线程组没有启动的线程，
+     * 并且允许以后启动线程。
      *
      * @param  t
      *         the Thread whose start method was invoked
@@ -929,10 +1054,15 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Notifies the group that the thread {@code t} has terminated.
      *
+     * 通知这个线程组这个线程已经被终止了。
+     *
      * <p> Destroy the group if all of the following conditions are
      * true: this is a daemon thread group; there are no more alive
      * or unstarted threads in the group; there are no subgroups in
      * this thread group.
+     *
+     * 销毁这个组如果下面的条件都成立:这个一个守护线程，没有活跃的或没启动的线程在这个
+     * 组里面，没有子线程组在这个线程组里。
      *
      * @param  t
      *         the Thread that has terminated
@@ -955,6 +1085,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Removes the specified Thread from this group. Invoking this method
      * on a thread group that has been destroyed has no effect.
+     *
+     * 从线程组里移除指定的线程，从已经销毁的线程组中调用这个方法没有任何效果;
      *
      * @param  t
      *         the Thread to be removed
@@ -979,6 +1111,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     /**
      * Prints information about this thread group to the standard
      * output. This method is useful only for debugging.
+     *
+     * 打印关于这个线程组的信息到标准输出中，这个方法对调试很有用。
      *
      * @since   JDK1.0
      */
@@ -1017,10 +1151,22 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * thread group stops because of an uncaught exception, and the thread
      * does not have a specific {@link Thread.UncaughtExceptionHandler}
      * installed.
+     *
+     * 被虚拟机调用当线程组的线程因为未捕获的异常而停止，并且线程没有设置 Thread.UncaughtExceptionHandler
+     * 的时候。
+     *
      * <p>
      * The <code>uncaughtException</code> method of
      * <code>ThreadGroup</code> does the following:
      * <ul>
+     * 线程组的uncaughtException方法做了如下的事情：
+     * 如果线程组有一个父线程组，父线程组的uncaughtException方法被调用，带着相同的
+     * 两个参数。
+     * 否则，这个方法调用Thread.getDefaultUncaughtExceptionHandler方法看是不是
+     * 有默认的未捕获异常拦截器，如果有它的uncaughtException被调用，带着两个相同的方法。
+     * 否则，这个方法判断Throwable参数是不是ThreadDeath实例，如果是，不做任何操作。
+     * 否则从Thread.getName方法返回的包含线程名的信息和栈回溯，使用Throwable的printStackTrace
+     * 方法，被打印到系统的标准错误流。
      * <li>If this thread group has a parent thread group, the
      *     <code>uncaughtException</code> method of that parent is called
      *     with the same two arguments.
@@ -1042,6 +1188,8 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * Applications can override this method in subclasses of
      * <code>ThreadGroup</code> to provide alternative handling of
      * uncaught exceptions.
+     *
+     * ThreadGroup的子类可以重写这个方法来提供其它的未捕获异常处理方法。
      *
      * @param   t   the thread that is about to exit.
      * @param   e   the uncaught exception.
