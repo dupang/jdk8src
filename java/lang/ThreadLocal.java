@@ -75,7 +75,10 @@ import java.util.function.Supplier;
  * thread-local instances are subject to garbage collection (unless other
  * references to these copies exist).
  *
- * 每一个线程持有一个内
+ * 每一个线程持有一个本地线程的变量的拷贝引用，只要这个线程活跃,并且ThreadLocak
+ * 实现可访问;在线程死掉之后，所有这个线程的本地变量的拷贝被交给垃圾回收。(除非这些拷贝
+ * 的其它引用存在)。
+ *
  * @author  Josh Bloch and Doug Lea
  * @since   1.2
  */
@@ -89,12 +92,20 @@ public class ThreadLocal<T> {
      * in the common case where consecutively constructed ThreadLocals
      * are used by the same threads, while remaining well-behaved in
      * less common cases.
+     *
+     * ThreadLocals依赖追加到每一个线程的线性哈希mapThread.threadLocals 和
+     * inheritableThreadLocals).ThreadLocal对象作为键，通过threadLocalHashCode
+     * 搜索。这个一个自定义的Hashcode(只在ThreadLocalMaps中有用)，它能消除
+     * 冲突在连续构建被相同线程使用的ThreadLocal的时候，同时保持良好表现在
+     * 不常见的情况下。
+     *
      */
     private final int threadLocalHashCode = nextHashCode();
 
     /**
      * The next hash code to be given out. Updated atomically. Starts at
      * zero.
+     * 下一个出现的hashCode。自动更新，从0开始。
      */
     private static AtomicInteger nextHashCode =
         new AtomicInteger();
@@ -103,11 +114,18 @@ public class ThreadLocal<T> {
      * The difference between successively generated hash codes - turns
      * implicit sequential thread-local IDs into near-optimally spread
      * multiplicative hash values for power-of-two-sized tables.
+     *
+     * 连续生成的哈希码的区别-把内部连续的本地线程ID变成接近最优的
+     * 扩展乘法
+     *
      */
     private static final int HASH_INCREMENT = 0x61c88647;
 
     /**
      * Returns the next hash code.
+     *
+     * 返回下一下HashCode
+     *
      */
     private static int nextHashCode() {
         return nextHashCode.getAndAdd(HASH_INCREMENT);
@@ -123,11 +141,21 @@ public class ThreadLocal<T> {
      * most once per thread, but it may be invoked again in case of
      * subsequent invocations of {@link #remove} followed by {@link #get}.
      *
+     * 返回当前线程的"初始值"为这个本地线程变量。这个方法被调用当第一次
+     * 一个线程用get方法访问本地线程变量的时候。，除非线程在这之前调用
+     * set方法，这种情况initialValue方法将不会被调用。通常，这个访问最
+     * 多被线程访问一次。但是它能被再次调用当调用了get访问之后又调用了
+     * remove方法。
+     *
      * <p>This implementation simply returns {@code null}; if the
      * programmer desires thread-local variables to have an initial
      * value other than {@code null}, {@code ThreadLocal} must be
      * subclassed, and this method overridden.  Typically, an
      * anonymous inner class will be used.
+     *
+     * 这个实现只是简单地返回null，如果程序员想让本地变量有一个
+     * 不是null的初始值，必需继承ThreadLocal并且这个方法被覆盖。
+     * 通过使用一个匿名的内部类。
      *
      * @return the initial value for this thread-local
      */
@@ -139,8 +167,12 @@ public class ThreadLocal<T> {
      * Creates a thread local variable. The initial value of the variable is
      * determined by invoking the {@code get} method on the {@code Supplier}.
      *
+     * 创建一个本地线程变量。变量的初始值是由调用Supplier值的get方法决定的。
+     *
      * @param <S> the type of the thread local's value
+     *           本地线程的值的类型
      * @param supplier the supplier to be used to determine the initial value
+     *                 用来决定初始值的supplier
      * @return a new thread local variable
      * @throws NullPointerException if the specified supplier is null
      * @since 1.8
@@ -151,6 +183,7 @@ public class ThreadLocal<T> {
 
     /**
      * Creates a thread local variable.
+     * 创建一个本地线程变量。
      * @see #withInitial(java.util.function.Supplier)
      */
     public ThreadLocal() {
@@ -161,6 +194,9 @@ public class ThreadLocal<T> {
      * thread-local variable.  If the variable has no value for the
      * current thread, it is first initialized to the value returned
      * by an invocation of the {@link #initialValue} method.
+     *
+     * 返回本地线程变量的当前线程的值的拷贝。如果这个变量没有这个线程的
+     * 值，它首先初始化这个值通过调用initialValue方法返回。
      *
      * @return the current thread's value of this thread-local
      */
@@ -181,6 +217,8 @@ public class ThreadLocal<T> {
     /**
      * Variant of set() to establish initialValue. Used instead
      * of set() in case user has overridden the set() method.
+     * 建立初始值的set方法的变体。当用户覆盖了set方法的时候用来
+     * 替代set()方法。
      *
      * @return the initial value
      */
@@ -200,6 +238,9 @@ public class ThreadLocal<T> {
      * to the specified value.  Most subclasses will have no need to
      * override this method, relying solely on the {@link #initialValue}
      * method to set the values of thread-locals.
+     *
+     * 用指定的值设置当前线程的线程本地变量的拷贝。大部分子类没必要重写这个
+     * 方法，仅仅依赖initialValue方法来设置线程本地变量的值。
      *
      * @param value the value to be stored in the current thread's copy of
      *        this thread-local.
@@ -222,6 +263,11 @@ public class ThreadLocal<T> {
      * in the interim.  This may result in multiple invocations of the
      * {@code initialValue} method in the current thread.
      *
+     * 移除这个线程的线程本地变量的值。如果这个线程本地变量随后被这个
+     * 线程调用get方法读取，这个值将会通过调用initialValue方法被再次
+     * 初始化。除非这个值被当前线程在这之间设置。这可能导致多次调用
+     * 当前线程的initialValue方法。
+     *
      * @since 1.5
      */
      public void remove() {
@@ -234,6 +280,9 @@ public class ThreadLocal<T> {
      * Get the map associated with a ThreadLocal. Overridden in
      * InheritableThreadLocal.
      *
+     * 返回跟这个ThreadLocal变量相关的map.在InheritableThreadLocal中
+     * 初覆盖。
+     *
      * @param  t the current thread
      * @return the map
      */
@@ -245,6 +294,9 @@ public class ThreadLocal<T> {
      * Create the map associated with a ThreadLocal. Overridden in
      * InheritableThreadLocal.
      *
+     * 创建一个跟这个ThreadLocal有关的map.在InheritableThreadLocal
+     * 中被覆盖。
+     *
      * @param t the current thread
      * @param firstValue value for the initial entry of the map
      */
@@ -255,6 +307,8 @@ public class ThreadLocal<T> {
     /**
      * Factory method to create map of inherited thread locals.
      * Designed to be called only from Thread constructor.
+     *
+     * 创建继承自ThreadLocals的map的工厂方法。
      *
      * @param  parentMap the map associated with parent thread
      * @return a map containing the parent's inheritable bindings
