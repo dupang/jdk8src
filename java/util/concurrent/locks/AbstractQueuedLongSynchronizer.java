@@ -43,6 +43,9 @@ import sun.misc.Unsafe;
 /**
  * A version of {@link AbstractQueuedSynchronizer} in
  * which synchronization state is maintained as a {@code long}.
+ *
+ * AbstractQueuedSynchronizer的另一个版本，这个版本里同步状态是long类型的。
+ *
  * This class has exactly the same structure, properties, and methods
  * as {@code AbstractQueuedSynchronizer} with the exception
  * that all state-related parameters and results are defined
@@ -50,6 +53,10 @@ import sun.misc.Unsafe;
  * may be useful when creating synchronizers such as
  * multilevel locks and barriers that require
  * 64 bits of state.
+ *
+ * 这个类具有和AbstractQueuedSynchronizer相同的的结构属性和方法。除了所有
+ * 状态相关的属性和结果定义的是long类型的，而不是int类型。这个类可能有用，
+ * 当创建需要64位状态的多层次的锁和屏障的同步器。
  *
  * <p>See {@link AbstractQueuedSynchronizer} for usage
  * notes and examples.
