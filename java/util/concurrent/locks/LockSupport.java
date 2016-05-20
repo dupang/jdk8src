@@ -40,6 +40,8 @@ import sun.misc.Unsafe;
  * Basic thread blocking primitives for creating locks and other
  * synchronization classes.
  *
+ * 创建锁和其它同步类的基本线程阻塞原语。
+ *
  * <p>This class associates, with each thread that uses it, a permit
  * (in the sense of the {@link java.util.concurrent.Semaphore
  * Semaphore} class). A call to {@code park} will return immediately
@@ -47,6 +49,10 @@ import sun.misc.Unsafe;
  * it <em>may</em> block.  A call to {@code unpark} makes the permit
  * available, if it was not already available. (Unlike with Semaphores
  * though, permits do not accumulate. There is at most one.)
+ *
+ * 这个类关联每一个使用它的线程一个许可。调用part将立刻返回如果许可可用，在这个过程中
+ * 消费它;否则它可能阻塞。调用unpark使许可可用，如果它还不可用。（可是不像Semaphores
+ * ,许可不累加。最多一个）
  *
  * <p>Methods {@code park} and {@code unpark} provide efficient
  * means of blocking and unblocking threads that do not encounter the
@@ -62,6 +68,13 @@ import sun.misc.Unsafe;
  * optimization of a "busy wait" that does not waste as much time
  * spinning, but must be paired with an {@code unpark} to be
  * effective.
+ *
+ * 由于许可park和unpark方法提供有效率的阻塞和解锁线程的方法，并且不会遇到引起过时的方法
+ * Thread.suspend和Thread.resume为这样目的不可用的问题，一个调用park的线程和另一个调用
+ * unpark将它全保持活性的线程之间的竞争。另外，park将会返回，如果调用的线程被中断，并且支持
+ * 超时的版本。park方法也可能在任何时间返回，没有"任何原因"，所以通常必须在一个循环中调用
+ * 并在返回时重新检测条件。在这个意义上来说park就像一个"忙等待"的优化而不会浪费太多时间自旋，
+ * 但是为了有效必须和unpark配对使用。
  *
  * <p>The three forms of {@code park} each also support a
  * {@code blocker} object parameter. This object is recorded while
