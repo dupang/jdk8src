@@ -156,7 +156,10 @@ public class LockSupport {
      * to {@code park} is guaranteed not to block. This operation
      * is not guaranteed to have any effect at all if the given
      * thread has not been started.
-     * 使用许可可用对给定的线程，如果它还不可用。
+     *
+     * 使用许可可用对给定的线程，如果它还不可用。如果因为park被阻塞,
+     * 那么它将解锁。否则，它下一次调用park，保证不会阻塞。如果给定
+     * 的线程还没有开始，那么这个操作将不会有什么效果。
      *
      * @param thread the thread to unpark, or {@code null}, in which case
      *        this operation has no effect
@@ -170,6 +173,7 @@ public class LockSupport {
      * Disables the current thread for thread scheduling purposes unless the
      * permit is available.
      *
+     * 使当前线程对线程调度来说不可用，
      * <p>If the permit is available then it is consumed and the call returns
      * immediately; otherwise
      * the current thread becomes disabled for thread scheduling
