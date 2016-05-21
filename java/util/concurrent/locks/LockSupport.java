@@ -85,6 +85,11 @@ import sun.misc.Unsafe;
  * parameter is strongly encouraged. The normal argument to supply as
  * a {@code blocker} within a lock implementation is {@code this}.
  *
+ * 三种形式的park每一个都支持一个blocker对象参数。这个对象当线程获取监听被
+ * 阻塞时被记录下来，并且分析工具可以使用它分析线程被阻塞的原因。(这些工具
+ * 可以通过 方法getBlocker(Thread) 访问blocker).强烈建议使用这三种形式的方法，
+ * 而不使用没有参数的原始形式。Lock实现里提供作为blocker的普通参数是this.
+ *
  * <p>These methods are designed to be used as tools for creating
  * higher-level synchronization utilities, and are not in themselves
  * useful for most concurrency control applications.  The {@code park}
@@ -97,6 +102,12 @@ import sun.misc.Unsafe;
  * call to {@code park} entail locking or blocking.  Because only one
  * permit is associated with each thread, any intermediary uses of
  * {@code park} could interfere with its intended effects.
+ *
+ * 这些方法被设计用来为工具创建高级别的同步工具，并且不是用来并发控制应用。
+ * park方法被设计只使用下面的形式
+ *
+ * 没有在canProceed或其它任何方法之前调用park而获取锁或阻塞。
+ * 因为只一个许可跟一个线程关联，任何居间地使用park可能影响它的最终效果。
  *
  * <p><b>Sample Usage.</b> Here is a sketch of a first-in-first-out
  * non-reentrant lock class:
@@ -145,6 +156,7 @@ public class LockSupport {
      * to {@code park} is guaranteed not to block. This operation
      * is not guaranteed to have any effect at all if the given
      * thread has not been started.
+     * 使用许可可用对给定的线程，如果它还不可用。
      *
      * @param thread the thread to unpark, or {@code null}, in which case
      *        this operation has no effect
