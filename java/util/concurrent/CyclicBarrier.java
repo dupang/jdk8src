@@ -45,6 +45,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * <em>cyclic</em> because it can be re-used after the waiting threads
  * are released.
  *
+ *
+ *
  * <p>A {@code CyclicBarrier} supports an optional {@link Runnable} command
  * that is run once per barrier point, after the last thread in the party
  * arrives, but before any threads are released.
