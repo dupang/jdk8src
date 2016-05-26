@@ -181,6 +181,8 @@ public class CountDownLatch {
     /**
      * Synchronization control For CountDownLatch.
      * Uses AQS state to represent count.
+     *
+     * 使用AQS state来表示count
      */
     private static final class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 4982264981922014374L;
@@ -215,8 +217,13 @@ public class CountDownLatch {
     /**
      * Constructs a {@code CountDownLatch} initialized with the given count.
      *
+     * 使用给定的count值来初始化CoundDownLatch
+     *
      * @param count the number of times {@link #countDown} must be invoked
      *        before threads can pass through {@link #await}
+     *
+     *              在线程可以通过await之前，countDown方法必须被调用的次数。
+     *
      * @throws IllegalArgumentException if {@code count} is negative
      */
     public CountDownLatch(int count) {
@@ -228,7 +235,11 @@ public class CountDownLatch {
      * Causes the current thread to wait until the latch has counted down to
      * zero, unless the thread is {@linkplain Thread#interrupt interrupted}.
      *
+     * 使当前线程等待直到latch已经减为0，除非线程被中断。
+     *
      * <p>If the current count is zero then this method returns immediately.
+     *
+     * 如果当前的count值是0，那么这个方法立刻返回。
      *
      * <p>If the current count is greater than zero then the current
      * thread becomes disabled for thread scheduling purposes and lies
@@ -240,6 +251,12 @@ public class CountDownLatch {
      * the current thread.
      * </ul>
      *
+     * 如果当前的count值大小0，那么当前线程变得不可用对线程调度来说，并且
+     * 休眠直到其中下面两件事发生。
+     *
+     * 由于调用countDown方法而使count值变为0，或者
+     * 其它线程中断了当前线程。
+     *
      * <p>If the current thread:
      * <ul>
      * <li>has its interrupted status set on entry to this method; or
@@ -247,6 +264,9 @@ public class CountDownLatch {
      * </ul>
      * then {@link InterruptedException} is thrown and the current thread's
      * interrupted status is cleared.
+     * 如果当前线程：
+     * 进入这个方法的时候带着中断状态，或者当等待的时候被中断，
+     * 那么抛出InterruptedException并且中断状态被清除。
      *
      * @throws InterruptedException if the current thread is interrupted
      *         while waiting
@@ -305,9 +325,14 @@ public class CountDownLatch {
      * Decrements the count of the latch, releasing all waiting threads if
      * the count reaches zero.
      *
+     * 递减latch的数量，释放所有等待的线程如果count数量为0.
+     *
      * <p>If the current count is greater than zero then it is decremented.
      * If the new count is zero then all waiting threads are re-enabled for
      * thread scheduling purposes.
+     *
+     * 如果当前count大于0，那么它递减。如果新的count值是0那么 所有等待的线程
+     * 将可以被线程调度可用。
      *
      * <p>If the current count equals zero then nothing happens.
      */
@@ -317,6 +342,8 @@ public class CountDownLatch {
 
     /**
      * Returns the current count.
+     *
+     * 返回当前数量
      *
      * <p>This method is typically used for debugging and testing purposes.
      *
