@@ -40,6 +40,8 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * A synchronization aid that allows one or more threads to wait until
  * a set of operations being performed in other threads completes.
  *
+ * 目的是允许一个或更多个线程等待其它线程直到一组操作执行完毕的同步。
+ *
  * <p>A {@code CountDownLatch} is initialized with a given <em>count</em>.
  * The {@link #await await} methods block until the current count reaches
  * zero due to invocations of the {@link #countDown} method, after which
@@ -47,6 +49,11 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * {@link #await await} return immediately.  This is a one-shot phenomenon
  * -- the count cannot be reset.  If you need a version that resets the
  * count, consider using a {@link CyclicBarrier}.
+ *
+ * 一个CountDownLatch用给定的count值初始化。await()方法阻塞直到当前线程由于调用countDown方法
+ * count值为0,在这之后所有等待的线程被释放并且任何随后的await方法调用会立刻返回。
+ * 这是一个一次性现象--count值不能被重置。如果你需要一个能重置的版本，可以考虑使用CylicBarrier.
+ *
  *
  * <p>A {@code CountDownLatch} is a versatile synchronization tool
  * and can be used for a number of purposes.  A
@@ -57,11 +64,19 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * can be used to make one thread wait until <em>N</em> threads have
  * completed some action, or some action has been completed N times.
  *
+ * 一个CountDownLatch是一个多功能的同步工具并且可以被用来很多目的。CountDownLatch被初始化时
+ * count为1作为一个简单on/off闩或门：所有的线程调用await()在门前等待直到被一个线程因为调用countDown而打开。
+ * 一个CountDownLatch的count被初始化为N可以被用来使一个线程等待直到N个线程已经做完一些动作，或者一些动作已经
+ * 被完成了N次。
+ *
  * <p>A useful property of a {@code CountDownLatch} is that it
  * doesn't require that threads calling {@code countDown} wait for
  * the count to reach zero before proceeding, it simply prevents any
  * thread from proceeding past an {@link #await await} until all
  * threads could pass.
+ *
+ * CountDownLatch的一个有用的特性是它不要求这个线程在继续之前调用countDown等待count值减为0，
+ * 它只是简单地阻止任何线程通过一个await继续直到所有的线程可以通过。
  *
  * <p><b>Sample usage:</b> Here is a pair of classes in which a group
  * of worker threads use two countdown latches:
@@ -71,6 +86,11 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * <li>The second is a completion signal that allows the driver to wait
  * until all workers have completed.
  * </ul>
+ *
+ * 用例：这有一对类，类中有一组工作者线程使用两个countdown latches:
+ *
+ * 第一个是一个开始信号，阻止任何工作者继续直到driver为他们继续准备好了;
+ * 第二个是一个结束信号，允许driver等待直到所有的工作者都结束。
  *
  *  <pre> {@code
  * class Driver { // ...
@@ -112,6 +132,10 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * Executor.  When all sub-parts are complete, the coordinating thread
  * will be able to pass through await. (When threads must repeatedly
  * count down in this way, instead use a {@link CyclicBarrier}.)
+ *
+ * 另一个典型的用法是把一个问题分为N部分，每一部分用一个Runnable来执行，并且count down那个h,
+ * 并且把所有的Runnable放入一个Executor.当所有的字部分都结束了，相应的线程将会通过await.(当线程
+ * 必须重复地count downn以这种方式，相反地用CyclicBarrier)
  *
  *  <pre> {@code
  * class Driver2 { // ...
