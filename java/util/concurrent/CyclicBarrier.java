@@ -45,7 +45,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * <em>cyclic</em> because it can be re-used after the waiting threads
  * are released.
  *
- *
+ * 同步目的允许一组线程彼此等待到达一个公同的障碍点。CyclicBarriers非常有用
+ * 在一个涉及固定数量的线程必需彼此等待的程序中。这个障碍被称为循环因为它
+ * 可以被重新使用在等待的线程被释放之后。
  *
  * <p>A {@code CyclicBarrier} supports an optional {@link Runnable} command
  * that is run once per barrier point, after the last thread in the party
@@ -53,8 +55,14 @@ import java.util.concurrent.locks.ReentrantLock;
  * This <em>barrier action</em> is useful
  * for updating shared-state before any of the parties continue.
  *
+ * CyclicBarrier支持一个可选的Runnable command在每一个barrier点运行一次，在同伙最一个线程
+ * 到达屏障点时，但是在任何线程被释放之前。
+ * 这个barrier action对于在任何一方继续之前更新共享的状态有用。
+ *
  * <p><b>Sample usage:</b> Here is an example of using a barrier in a
  * parallel decomposition design:
+ *
+ * 用例:这里是一个在并行分解设计中使用的barrier的例子。
  *
  *  <pre> {@code
  * class Solver {
@@ -113,6 +121,10 @@ import java.util.concurrent.locks.ReentrantLock;
  * {@link #await} returns the arrival index of that thread at the barrier.
  * You can then choose which thread should execute the barrier action, for
  * example:
+ *
+ * 如果barrier动作在执行的时候不依赖正在暂停的线程，那么任何线程可以执行那个
+ * 动作当它被释放的时候。为了达到这个目的，每一个调用await方法返回线程到达屏障的
+ * 到达顺序。你可以选择那一个线程可以执行barrier动作，例如。
  *  <pre> {@code
  * if (barrier.await() == 0) {
  *   // log the completion of this iteration
@@ -126,12 +138,19 @@ import java.util.concurrent.locks.ReentrantLock;
  * {@link InterruptedException} if they too were interrupted at about
  * the same time).
  *
+ * CyclicBarrier对失败的同步的尝试使用all-or-none断裂模型：如果一个线程
+ * 贸然地离开屏障点因为中断，失败或超时，所有其它等待在屏障点的线程将也非正常地离开通过
+ * 抛出BrokenBarrierException(或者InterruptedException，如果他们几乎同时被中断)
+ *
  * <p>Memory consistency effects: Actions in a thread prior to calling
  * {@code await()}
  * <a href="package-summary.html#MemoryVisibility"><i>happen-before</i></a>
  * actions that are part of the barrier action, which in turn
  * <i>happen-before</i> actions following a successful return from the
  * corresponding {@code await()} in other threads.
+ *
+ * 内存一致性效果：一个线程的动作在调用await()方法中之前happen-before barrier动作中的部分，
+ * barrier 动作 happen-before 在其它线程中await()中成功返回的后的动作。
  *
  * @since 1.5
  * @see CountDownLatch
@@ -149,6 +168,15 @@ public class CyclicBarrier {
      * and all the rest are either broken or tripped.
      * There need not be an active generation if there has been a break
      * but no subsequent reset.
+     *
+     * 每一个使用的barrier用一个genertion实例表示。generation改变在barrier被绊倒，
+     * 或者被重置。可以用很多generation和使用barrier的线程关联-- 由于不确定性地
+     * 方式锁被分配给等待中的线程--但是同一时刻只有一个可以活跃(),并且所有其它的要么被
+     * broken或者绊倒。
+     *
+     * 如果有一个break但是没有随后的reset,那就不需要一个活跃的generation.
+     *
+     *
      */
     private static class Generation {
         boolean broken = false;
@@ -169,12 +197,19 @@ public class CyclicBarrier {
      * Number of parties still waiting. Counts down from parties to 0
      * on each generation.  It is reset to parties on each new
      * generation or when broken.
+     *
+     * 正在等待的数量，数量从parties到0在每一代。它被重置为parties的值在每一个新的generation
+     * 或当它被破坏。
      */
     private int count;
 
     /**
      * Updates state on barrier trip and wakes up everyone.
      * Called only while holding lock.
+     *
+     * 更新barier trip的state 并且唤醒所有人，
+     * 只在持有锁的时候调用。
+     *
      */
     private void nextGeneration() {
         // signal completion of last generation
@@ -187,6 +222,9 @@ public class CyclicBarrier {
     /**
      * Sets current barrier generation as broken and wakes up everyone.
      * Called only while holding lock.
+     *
+     * 设置当前barrier generation为被破坏，并且唤醒所有人。
+     * 只在持有锁的时候被调用。
      */
     private void breakBarrier() {
         generation.broken = true;
@@ -196,6 +234,7 @@ public class CyclicBarrier {
 
     /**
      * Main barrier code, covering the various policies.
+     * 主要的屏障代码，包括各种策略。
      */
     private int dowait(boolean timed, long nanos)
         throws InterruptedException, BrokenBarrierException,
