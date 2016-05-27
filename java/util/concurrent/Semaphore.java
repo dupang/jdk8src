@@ -45,9 +45,18 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * However, no actual permit objects are used; the {@code Semaphore} just
  * keeps a count of the number available and acts accordingly.
  *
+ *
+ * 一个计数的信号量.从概念上来讲，一个信号维护着一组许可证。如果必需每一个acquire阻塞直到
+ * 一个许可可用，并且然后拿走它。每一次释放增加一个许可，潜在地释放一个阻塞的获取者。
+ * 然而，没有真正的的许可对象被使用;Semaphore 只是保存一个可用的数量和相应的动作。
+ *
  * <p>Semaphores are often used to restrict the number of threads than can
  * access some (physical or logical) resource. For example, here is
  * a class that uses a semaphore to control access to a pool of items:
+ *
+ * Semaphores经常被用来限制线程可以访问一些资源的数量。例如，这里有一个类使用semaphore
+ * 控制访问项目的池;
+ *
  *  <pre> {@code
  * class Pool {
  *   private static final int MAX_AVAILABLE = 100;
@@ -103,6 +112,11 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * from any synchronization needed to maintain the consistency of the
  * pool itself.
  *
+ * 在获取一个条目之前每一天线程必须从semaphore获取一个许可，保证那个条目是可用的。
+ * 当线程已经结束，条目返回池里面，并且许可返回给semaphore,允许另一个获取这个条目。
+ * 注意没有同步锁被持有当acquire被调用的时候因为这将阻止一个条目返回给池。
+ * semaphore封装需要的同步来限制对池的访问，和维持pool本身一致性的同步分离开。
+ *
  * <p>A semaphore initialized to one, and which is used such that it
  * only has at most one permit available, can serve as a mutual
  * exclusion lock.  This is more commonly known as a <em>binary
@@ -113,6 +127,12 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * thread other than the owner (as semaphores have no notion of
  * ownership).  This can be useful in some specialized contexts, such
  * as deadlock recovery.
+ *
+ * semaphore初始化的时候1,这被用来最多一个许可可用，可以用作互斥锁。
+ * 这通常比较常见的二元semaphore,因为它只有两个状态：一个可用的许可或0个可用的许可。
+ * 当用这种方法使用的时候，这二元semaphore有个属性（不同于很多java.util.concurrent.locks.Lock），
+ * ,这个lock可以被一个不是拥有者(因为semaphores没有拥有权的概念)的线程释放。在一下特定的情况下很有用，
+ * 例如死锁恢复。
  *
  * <p> The constructor for this class optionally accepts a
  * <em>fairness</em> parameter. When set false, this class makes no
@@ -133,22 +153,37 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  * honor the fairness setting, but will take any permits that are
  * available.
  *
+ * 这个类的构造器可选地接受一个fairness参数。当设置false的时候，这个类不保证线程获取许可的顺序。
+ * 特别地，允许强制进入，也就是说，一个线程调用acquire可以被分配一个许可在等待的线程之前。
+ * 逻辑上，新的线程把它放在等待线程的头部。当设置fairness设置为true时，semaphore保证线程调用acquire方法
+ * 以他们处理的顺序(FIFO).所以，一个线程在另一个线程之前调用acquire方法是可能的，但到达排序点比另一个线程无，
+ * 并且简单地从方法中返回。
+ * 同时注意untimed的tryacquire的方法不遵循公平设置，但是将获取任何可用的许可。
+ *
  * <p>Generally, semaphores used to control resource access should be
  * initialized as fair, to ensure that no thread is starved out from
  * accessing a resource. When using semaphores for other kinds of
  * synchronization control, the throughput advantages of non-fair
  * ordering often outweigh fairness considerations.
  *
+ * 通常，当semaphores被用来控制资源访问应该初始化为公平的，来确保没有线程被饿死。
+ * 当使用semaphores用于其它同步控制，不公平的好处通常大于公平的吞吐量。
+ *
  * <p>This class also provides convenience methods to {@link
  * #acquire(int) acquire} and {@link #release(int) release} multiple
  * permits at a time.  Beware of the increased risk of indefinite
  * postponement when these methods are used without fairness set true.
+ *
+ * 这个类也提供使得方法一次acquire(int)和release(int)多个许可。
+ * 当心当这些方法使用的时候没有把fairness设置成true时导致的无限的推迟的风险。
  *
  * <p>Memory consistency effects: Actions in a thread prior to calling
  * a "release" method such as {@code release()}
  * <a href="package-summary.html#MemoryVisibility"><i>happen-before</i></a>
  * actions following a successful "acquire" method such as {@code acquire()}
  * in another thread.
+ *
+ * 内在一致性效果：
  *
  * @since 1.5
  * @author Doug Lea
@@ -162,6 +197,8 @@ public class Semaphore implements java.io.Serializable {
      * Synchronization implementation for semaphore.  Uses AQS state
      * to represent permits. Subclassed into fair and nonfair
      * versions.
+     *
+     * 为semaphore实现的同步。使用AQS状态代表许可。子类分为公平和非公平两个版本。
      */
     abstract static class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 1192457210091910933L;
@@ -257,9 +294,14 @@ public class Semaphore implements java.io.Serializable {
      * Creates a {@code Semaphore} with the given number of
      * permits and nonfair fairness setting.
      *
+     * 用指定的许可数量和非公平性设置创建一个semaphore
+     *
      * @param permits the initial number of permits available.
      *        This value may be negative, in which case releases
      *        must occur before any acquires will be granted.
+     *
+     *                可用的许可的初始化数量。这个数量可以为负数，这种情况
+     *                释放必需在任何获取前面发生。
      */
     public Semaphore(int permits) {
         sync = new NonfairSync(permits);
@@ -305,6 +347,20 @@ public class Semaphore implements java.io.Serializable {
      * </ul>
      * then {@link InterruptedException} is thrown and the current thread's
      * interrupted status is cleared.
+     *
+     * 从semaphore获取许可，阻塞只到有可用许可，或者线程被中断。
+     *
+     * 获取一个许可，如果有可用的许可并且立刻返回。减小一个可用许可的数量。
+     *
+     * 如果没有许可可用，那么当前线程对线程调度应得不可用并且休眠只到下面其中一个事情发生:
+     * 1.其它线程调用release方法并且当前线程是下一次被分配许可的线程，
+     * 2.其它线程中断了当前线程。
+     *
+     * 如果当前线程：
+     *
+     * 进入这个方法的时候带着中断状态，或者等待许可的时候被中断了。
+     * 那么抛出InterruptedException并且当前线的中断状态被清除。
+     *
      *
      * @throws InterruptedException if the current thread is interrupted
      */
