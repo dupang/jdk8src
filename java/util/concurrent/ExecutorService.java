@@ -42,6 +42,8 @@ import java.util.Collection;
  * methods that can produce a {@link Future} for tracking progress of
  * one or more asynchronous tasks.
  *
+ * Executor提供管理终止的方法和产生追踪一个或多个异步任务的Fucture的方法。
+ *
  * <p>An {@code ExecutorService} can be shut down, which will cause
  * it to reject new tasks.  Two different methods are provided for
  * shutting down an {@code ExecutorService}. The {@link #shutdown}
@@ -53,6 +55,13 @@ import java.util.Collection;
  * unused {@code ExecutorService} should be shut down to allow
  * reclamation of its resources.
  *
+ * ExecutorService 可以被关闭，这将使它拒绝新的任务。提供了两个不同的
+ * 关闭的方法。shutdown方法将使先前提交的方法在关闭之前执行完。
+ * 而shutdownNow方法阻止等待的任务开始并且试图停止当前正在执行的任务。
+ * 一旦终止，一个executor没有正在执行的任务，没有等待执行的任务，
+ * 没有新任务可以被提交。一个不用的ExecutorService应该被关闭使它的资源被
+ * 收回。
+ *
  * <p>Method {@code submit} extends base method {@link
  * Executor#execute(Runnable)} by creating and returning a {@link Future}
  * that can be used to cancel execution and/or wait for completion.
@@ -62,8 +71,15 @@ import java.util.Collection;
  * complete. (Class {@link ExecutorCompletionService} can be used to
  * write customized variants of these methods.)
  *
+ * submit方法通过创建和返回一个Future来扩展基本方法Executor.execute().
+ * Future可以被用来取消执行和\或等待任务结束。
+ * invokeAny和invokeAll方法可以批量执行，执行一组任务并且等待至少一个或所有
+ * 结束。(类ExecutorCompletionService可以被用来编写自定义的这个方法)
+ *
  * <p>The {@link Executors} class provides factory methods for the
  * executor services provided in this package.
+ *
+ * 同一个包里的Executors类为executor services提供了工厂方法。
  *
  * <h3>Usage Examples</h3>
  *
@@ -141,6 +157,9 @@ public interface ExecutorService extends Executor {
      * tasks are executed, but no new tasks will be accepted.
      * Invocation has no additional effect if already shut down.
      *
+     * 启动一个顺序地关闭，顺序按照提交的顺序。但是不会接受新的任务。
+     * 如果已经关闭了，调用这个方法不会有额外的效果。
+     *
      * <p>This method does not wait for previously submitted tasks to
      * complete execution.  Use {@link #awaitTermination awaitTermination}
      * to do that.
@@ -208,7 +227,7 @@ public interface ExecutorService extends Executor {
      * @throws InterruptedException if interrupted while waiting
      */
     boolean awaitTermination(long timeout, TimeUnit unit)
-        throws InterruptedException;
+            throws InterruptedException;
 
     /**
      * Submits a value-returning task for execution and returns a
@@ -285,7 +304,7 @@ public interface ExecutorService extends Executor {
      *         scheduled for execution
      */
     <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
-        throws InterruptedException;
+            throws InterruptedException;
 
     /**
      * Executes the given tasks, returning a list of Futures holding
@@ -317,7 +336,7 @@ public interface ExecutorService extends Executor {
      */
     <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
                                   long timeout, TimeUnit unit)
-        throws InterruptedException;
+            throws InterruptedException;
 
     /**
      * Executes the given tasks, returning the result
@@ -339,7 +358,7 @@ public interface ExecutorService extends Executor {
      *         for execution
      */
     <T> T invokeAny(Collection<? extends Callable<T>> tasks)
-        throws InterruptedException, ExecutionException;
+            throws InterruptedException, ExecutionException;
 
     /**
      * Executes the given tasks, returning the result
@@ -366,5 +385,5 @@ public interface ExecutorService extends Executor {
      */
     <T> T invokeAny(Collection<? extends Callable<T>> tasks,
                     long timeout, TimeUnit unit)
-        throws InterruptedException, ExecutionException, TimeoutException;
+            throws InterruptedException, ExecutionException, TimeoutException;
 }
