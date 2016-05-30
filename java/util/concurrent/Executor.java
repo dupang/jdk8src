@@ -45,7 +45,8 @@ package java.util.concurrent;
  * of a set of tasks, you might use:
  *
  * 一个执行提交的Runnable的任务的对象。这个接口提供了一个从每一个任务将怎么运行，包括线程使用，
- * 调度等待的机制解偶的方法。
+ * 调度等待的机制解偶的方法。Executor通常被用来代替显式地创建线程。例如，
+ * 相比之为每一组任务调用new Thread(new RunnableTask()).start()你可以使用：
  *
  * <pre>
  * Executor executor = <em>anExecutor</em>;
@@ -59,6 +60,9 @@ package java.util.concurrent;
  * executor can run the submitted task immediately in the caller's
  * thread:
  *
+ * 然而，Executor接口不强制要求执行是异步的，在最简单的例子，一个
+ * executor可以立刻在调用者的线程中运行提交的任务。
+ *
  *  <pre> {@code
  * class DirectExecutor implements Executor {
  *   public void execute(Runnable r) {
@@ -69,6 +73,8 @@ package java.util.concurrent;
  * More typically, tasks are executed in some thread other
  * than the caller's thread.  The executor below spawns a new thread
  * for each task.
+ *
+ * 更典型地，任务被其它线程执行而不是调用者的线程。
  *
  *  <pre> {@code
  * class ThreadPerTaskExecutor implements Executor {
@@ -82,6 +88,7 @@ package java.util.concurrent;
  * serializes the submission of tasks to a second executor,
  * illustrating a composite executor.
  *
+ * 很多Executor实现加入了一些关于任务怎么和什么时候被调度的限制。
  *  <pre> {@code
  * class SerialExecutor implements Executor {
  *   final Queue<Runnable> tasks = new ArrayDeque<Runnable>();
@@ -120,10 +127,15 @@ package java.util.concurrent;
  * extensible thread pool implementation. The {@link Executors} class
  * provides convenient factory methods for these Executors.
  *
+ * 这个包里提供的Executor实现实现了ExecutorService,这是一个更具扩展
+ * 的接口。ThreadPoolExecutro类提供了一个扩展的线程池实现。
+ * Executors类为这些Executros提供了便利的工厂方法。
+ *
  * <p>Memory consistency effects: Actions in a thread prior to
  * submitting a {@code Runnable} object to an {@code Executor}
  * <a href="package-summary.html#MemoryVisibility"><i>happen-before</i></a>
  * its execution begins, perhaps in another thread.
+ *
  *
  * @since 1.5
  * @author Doug Lea
@@ -134,6 +146,9 @@ public interface Executor {
      * Executes the given command at some time in the future.  The command
      * may execute in a new thread, in a pooled thread, or in the calling
      * thread, at the discretion of the {@code Executor} implementation.
+     *
+     * 在未来的某一时刻执行一个给定的命令。命令可能在一个新的线程，一个池中的
+     * 线程，或者调用者的线程，根据Executor实现。
      *
      * @param command the runnable task
      * @throws RejectedExecutionException if this task cannot be
