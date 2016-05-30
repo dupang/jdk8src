@@ -46,11 +46,21 @@ package java.util.concurrent;
  * in a different part of the program when the reads complete,
  * possibly in a different order than they were requested.
  *
+ * 一个解耦从完成的任务的结果的消费的新异步任务的结果的服务。
+ * 生产者submit任务来执行。消费者take完成的任务并且处理他们的结果以他们完成的顺序。
+ * 一个CompletionService可以被用来管理异步I/O,在这样的任务中，执行的读被提交
+ * 在一个程序或系统的这一部分，并且当完成读时在程序的另一个部分采取行动。
+ * 可能以他们被请求的顺序。
+ *
  * <p>Typically, a {@code CompletionService} relies on a separate
  * {@link Executor} to actually execute the tasks, in which case the
  * {@code CompletionService} only manages an internal completion
  * queue. The {@link ExecutorCompletionService} class provides an
  * implementation of this approach.
+ *
+ * 典型地，一个CompletionService依赖一个单独的Executor来执行任务，
+ * 这种情况CompletionService只管理内部完成队列。ExecutorCompletionService
+ * 类提供一个这个方法的实现。
  *
  * <p>Memory consistency effects: Actions in a thread prior to
  * submitting a task to a {@code CompletionService}
