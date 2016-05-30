@@ -44,6 +44,9 @@ package java.util.concurrent;
  * invoking {@code new Thread(new(RunnableTask())).start()} for each
  * of a set of tasks, you might use:
  *
+ * 一个执行提交的Runnable的任务的对象。这个接口提供了一个从每一个任务将怎么运行，包括线程使用，
+ * 调度等待的机制解偶的方法。
+ *
  * <pre>
  * Executor executor = <em>anExecutor</em>;
  * executor.execute(new RunnableTask1());
