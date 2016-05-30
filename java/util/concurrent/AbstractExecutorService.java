@@ -48,6 +48,13 @@ import java.util.*;
  * to return {@code RunnableFuture} implementations other than
  * {@code FutureTask}.
  *
+ * 提供ExecutorService的执行方法的默认实现。这个类用一个newTaskFor方法返回的
+ * RunnableFuture实现了submit,invokeAny和invokeAll方法，RunnableFuture默认是
+ * 这个包里的FutureTask。例如，submit(Runnable)的实现创建一个相关的
+ * 被执行和返回的RunnableFuture。子类可以重写newTaskFor方法来返回RunnableFuture
+ * 实现而不是FutureTask.
+ *
+ *
  * <p><b>Extension example</b>. Here is a sketch of a class
  * that customizes {@link ThreadPoolExecutor} to use
  * a {@code CustomTask} class instead of the default {@code FutureTask}:
@@ -74,6 +81,8 @@ public abstract class AbstractExecutorService implements ExecutorService {
      * Returns a {@code RunnableFuture} for the given runnable and default
      * value.
      *
+     * 用给定的runnable和默认值返回一个RunnableFuture对象。
+     *
      * @param runnable the runnable task being wrapped
      * @param value the default value for the returned future
      * @param <T> the type of the given value
@@ -89,6 +98,8 @@ public abstract class AbstractExecutorService implements ExecutorService {
 
     /**
      * Returns a {@code RunnableFuture} for the given callable task.
+     *
+     * 用给定callable任务返回一个RunnableFuture.
      *
      * @param callable the callable task being wrapped
      * @param <T> the type of the callable's result
@@ -156,9 +167,14 @@ public abstract class AbstractExecutorService implements ExecutorService {
         // plus the exception mechanics account for messiness of main
         // loop.
 
+        //为了提高效率，尤其是在有限的并行执行,在提交更多任务之前检查查看如果先前提前的任务
+        //是否已经完成。这交织着异常机制。
+
         try {
             // Record exceptions so that if we fail to obtain any
             // result, we can throw the last exception we got.
+            //记录异常以便如果我们不能获取任何结果，我们可以抛出我们得到的最后一个异常。
+
             ExecutionException ee = null;
             final long deadline = timed ? System.nanoTime() + nanos : 0L;
             Iterator<? extends Callable<T>> it = tasks.iterator();
