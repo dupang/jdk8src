@@ -50,12 +50,12 @@ package java.util.concurrent;
  * declare types of the form {@code Future<?>} and
  * return {@code null} as a result of the underlying task.
  *
- * Future����һ���첽����Ľ�����ṩ�������鿴�����Ƿ���ɣ��ȴ�
- * ����ɣ����Ҽ�������Ľ�������ֻ�ܱ�����ʹ��get�����������Ѿ�
- * ��ɵ�ʱ�������Ҫ����ֻ������ɡ�ȡ����ִ��ͨ��cancel������
- * �����ṩ�˷����ж��Ƿ�����������ɻ�ȡ���ˡ�һ��һ�����㱻��ɣ�
- * ���㲻�ܱ�ȡ�����������ʹ��Future��ȡ�����Զ������ṩһ�����õĽ����
- * �����������������������ʽ���ҷ���null��Ϊ��������
+ * Future代表一个异步计算的结果。提供方法来查看计算是否完成，等待
+ * 它完成，并且检索计算的结果。结果只能被检索使用get方法当计算已经
+ * 完成的时候，如果必要阻塞只到它完成。取消被执行通过cancel方法。
+ * 另外提供了方法判断是否任务正常完成或被取消了。一旦一个计算被完成，
+ * 计算不能被取消。如果你想使用Future的取消特性而不想提供一个有用的结果，
+ * 你可以声明类型以这样的形式并且返回null作为任务结果。
  *
  * <p>
  * <b>Sample Usage</b> (Note that the following classes are all
@@ -112,9 +112,16 @@ public interface Future<V> {
      * whether the thread executing this task should be interrupted in
      * an attempt to stop the task.
      *
+     * 试图取消这个任务的执行。如果任务已经结束已经取消或者因为一些原因不能被取消，
+     * 这个试图操作就会失败。如果成功，并且这个任务还没有开始当调用cnacel的时候，
+     * 这个任务就永远不会运行。如果任务已经开始，那么mayInterruptIfRunning参数
+     * 决定执行这个任务的线程是否被中断在试图停止这个任务的时候。
+     *
      * <p>After this method returns, subsequent calls to {@link #isDone} will
      * always return {@code true}.  Subsequent calls to {@link #isCancelled}
      * will always return {@code true} if this method returned {@code true}.
+     *
+     * 这个方法返回后，如果这个方法返回true.随后调用isDone将总是返回true.随后调用isCancelled将总是返回true.
      *
      * @param mayInterruptIfRunning {@code true} if the thread executing this
      * task should be interrupted; otherwise, in-progress tasks are allowed
@@ -128,6 +135,7 @@ public interface Future<V> {
     /**
      * Returns {@code true} if this task was cancelled before it completed
      * normally.
+     * 如果这个任务在正常完成之前被取消了，那么返回true.
      *
      * @return {@code true} if this task was cancelled before it completed
      */
@@ -136,9 +144,13 @@ public interface Future<V> {
     /**
      * Returns {@code true} if this task completed.
      *
+     * 如果这个任务完成了就返回true.
+     *
      * Completion may be due to normal termination, an exception, or
      * cancellation -- in all of these cases, this method will return
      * {@code true}.
+     *
+     * 完成可能由于正常结束，异常，或者取消--所有的这种情况，这个方法将返回true.
      *
      * @return {@code true} if this task completed
      */
@@ -147,6 +159,8 @@ public interface Future<V> {
     /**
      * Waits if necessary for the computation to complete, and then
      * retrieves its result.
+     *
+     * 如果有必要就等待计算完成，并且然后检索结果。
      *
      * @return the computed result
      * @throws CancellationException if the computation was cancelled
@@ -161,6 +175,8 @@ public interface Future<V> {
      * Waits if necessary for at most the given time for the computation
      * to complete, and then retrieves its result, if available.
      *
+     * 如果有必要就最多等待给定的时间来计算结束，并且然后检索结果，
+     *
      * @param timeout the maximum time to wait
      * @param unit the time unit of the timeout argument
      * @return the computed result
@@ -172,5 +188,5 @@ public interface Future<V> {
      * @throws TimeoutException if the wait timed out
      */
     V get(long timeout, TimeUnit unit)
-        throws InterruptedException, ExecutionException, TimeoutException;
+            throws InterruptedException, ExecutionException, TimeoutException;
 }
