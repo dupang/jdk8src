@@ -50,6 +50,13 @@ package java.util.concurrent;
  * declare types of the form {@code Future<?>} and
  * return {@code null} as a result of the underlying task.
  *
+ * Future代表一个异步计算的结果。提供方法来查看计算是否完成，等待
+ * 它完成，并且检索计算的结果。结果只能被检索使用get方法当计算已经
+ * 完成的时候，如果必要阻塞只到它完成。取消被执行通过cancel方法。
+ * 另外提供了方法判断是否任务正常完成或被取消了。一旦一个计算被完成，
+ * 计算不能被取消。如果你想使用Future的取消特性而不想提供一个有用的结果，
+ * 你可以声明类型以这样的形式并且返回null作为任务结果。
+ *
  * <p>
  * <b>Sample Usage</b> (Note that the following classes are all
  * made-up.)
