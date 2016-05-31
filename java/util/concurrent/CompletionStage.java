@@ -49,6 +49,10 @@ import java.util.concurrent.Executor;
  * in this interface takes only a few basic forms, which expand out to
  * a larger set of methods to capture a range of usage styles: <ul>
  *
+ * 一个可能异步计算的阶段，执行一个动作或计算一个值当另一个CompletionStage完成。
+ * 一个阶段完成当计算终止的时候，但是这可能相应地触发另一个依赖的stages。这个
+ * 接口定义的功能只是一些基本形式，扩展到更大的方法集合捕获一系列的使用样式：
+ *
  * <li>The computation performed by a stage may be expressed as a
  * Function, Consumer, or Runnable (using methods with names including
  * <em>apply</em>, <em>accept</em>, or <em>run</em>, respectively)
@@ -57,6 +61,11 @@ import java.util.concurrent.Executor;
  * System.out.print(x)).thenRun(() -> System.out.println())}. An
  * additional form (<em>compose</em>) applies functions of stages
  * themselves, rather than their results. </li>
+ *
+ * 被一个阶段执行的计算可能是表达为Function,Consumer,或Runnable,(使用带有apply,accept或run名字的方法)
+ * 取决于他是否需要参数和产生结果。
+ * 例如，stage.thenApply(x->square(x)).thenAccept(x->System.out.print(x)).thenRun(() -> System.out.println()))
+ * 另外的形式compose作用于stages自己的函数，而不是他们的结果。
  *
  * <li> One stage's execution may be triggered by completion of a
  * single stage, or both of two stages, or either of two stages.
@@ -67,6 +76,11 @@ import java.util.concurrent.Executor;
  * <em>either</em> of two stages make no guarantees about which of the
  * results or effects are used for the dependent stage's
  * computation.</li>
+ *
+ * 一个stage的执行可能被一个单独的stage的完成触发，或是两个stages，或两者中的一个。
+ * 取决于一个单独的stage用带着前缘then的方法被安排。被两个stages触发的stage可以
+ * combine他们的结果或效果，使用相应的命名方法。被两个中的其中一个触发的stage
+ * 不保证那一个的结果或效果被使用。
  *
  * <li> Dependencies among stages control the triggering of
  * computations, but do not otherwise guarantee any particular
@@ -80,6 +94,13 @@ import java.util.concurrent.Executor;
  * explicit Executor arguments may have arbitrary execution
  * properties, and might not even support concurrent execution, but
  * are arranged for processing in a way that accommodates asynchrony.
+ *
+ * stages之间的依赖控制计算的触发条件，但是不保证任何的特定的顺序。另外，一个新stage的
+ * 计算的执行可能被安排为三中方法方法中的任何一个：默认的执行，默认的异步执行
+ * (使用带着async后缀的方法服务于stage的默认的异步执行能力)，或自定义的
+ * （通过提供的Executor）。默认和异步模式执行的性能被CompletionStage的实现来指定，而不是这个接口。
+ * 带着明确的Executor参数的方法可以有任意的执行性能，并且可能不支持同步执行，
+ * 但是为了处理以一个容纳异步的方法被安排。
  *
  * <li> Two method forms support processing whether the triggering
  * stage completed normally or exceptionally: Method {@link
@@ -102,6 +123,16 @@ import java.util.concurrent.Executor;
  * exception, then the stage exceptionally completes with this
  * exception if not already completed exceptionally.</li>
  *
+ * 两个方法支持处理是否触发的stage正常地完成或异常地完成：方法whenComplete允许
+ * 动作的注入而不管结果，否则保存结果在完成中。方法handle另外允许stage计算一个
+ * 替换的结果可能使被其它的依赖的stage进一步的处理.在所有其它情况中，如果stage的
+ * 计算带着异常或错误突然终止，那么所有依赖的stage需要它的完成也异常地完成。用
+ * CompletionExecption保存异常作为它的cause.如果一个stage依赖两个stage,
+ * 并且两个都异常地完成，然后CompletionExecption可以保存两者中的其中一个异常。
+ * 如果一个stage依赖两者中的一个，并且只有其中一个完成异常，不保证是否依赖的stage
+ * 正常地完成或异常地完成。在whenComplete方法情况下，当提供一动作自己遇到了异常，
+ * 那么stage异常地完成带着这个异常，如果还没有异常地完成。
+ *
  * </ul>
  *
  * <p>All methods adhere to the above triggering, execution, and
@@ -120,6 +151,14 @@ import java.util.concurrent.Executor;
  * enables interoperability among different implementations of this
  * interface by providing a common conversion type.
  *
+ * 所有方法遵循上面的触发，执行，和异常的完成规范(在单独的方法规范中不再重复)。另外，
+ * 被用来作为完成结果传给方法的参数可能是null,传递一个null值给任何参数将会抛出
+ * NullPointerException异常。
+ *
+ * 这个接口接口没有定义初始化创建，正常或者异常地强制完成，完成状态或结果，或等待stage完成的方法。
+ * CompletionStatage可能适合地提供完成这个功能的方法。toCompletableFuture方法通过提供一个
+ * 通用的转换类型使协同工作在这个接口的不同实现之间。
+ *
  * @author Doug Lea
  * @since 1.8
  */
@@ -132,6 +171,9 @@ public interface CompletionStage<T> {
      *
      * See the {@link CompletionStage} documentation for rules
      * covering exceptional completion.
+     *
+     * 返回一个新的CompletionStage，当这个stage正常地完成，这个stage的结果作为
+     * 提供的function的参数被执行。
      *
      * @param fn the function to use to compute the value of
      * the returned CompletionStage
@@ -149,6 +191,9 @@ public interface CompletionStage<T> {
      * See the {@link CompletionStage} documentation for rules
      * covering exceptional completion.
      *
+     * 返回一个新的CompletionStage,当这个stage正常地完成，使用这个stage的默认
+     * 异步执行能力，用stage的结果作为提供的function的参数来执行。
+     *
      * @param fn the function to use to compute the value of
      * the returned CompletionStage
      * @param <U> the function's return type
@@ -164,6 +209,9 @@ public interface CompletionStage<T> {
      *
      * See the {@link CompletionStage} documentation for rules
      * covering exceptional completion.
+     *
+     * 返回一个新的CompletionStage,当这个stage正常地完成，使用提供的Executor
+     * 用stage的结果作为提供的function的参数来执行。
      *
      * @param fn the function to use to compute the value of
      * the returned CompletionStage
@@ -182,6 +230,9 @@ public interface CompletionStage<T> {
      *
      * See the {@link CompletionStage} documentation for rules
      * covering exceptional completion.
+     *
+     * 返回一个新的CompletionStage，当这个stage正常地完成，这个stage的结果作为
+     * 提供的action的参数被执行。
      *
      * @param action the action to perform before completing the
      * returned CompletionStage
