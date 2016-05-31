@@ -181,8 +181,15 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * to maintain claims). It is also declared as Runnable to allow
      * usage with arbitrary executors.
      *
+     * 依赖的actions由以字段"stack"为首的相关的Treiber栈Completion对象代表。
+     * 有一个Completion类表示每一种的action，按组分为单个-输入(UniCompletion),
+     * 两个-输入(BiCompletion),受保护的(Bicompletions俩个参数使用任何一个(都不))，
+     * 共享的（CoCompletion,被两个源中的第二个使用），0输入源动作，和唤醒等待的Singnallers。
+     *
      * Support for each kind of CompletionStage relies on a separate
      * class, along with two CompletableFuture methods:
+     *
+     * 对每一种的CompletionStage的支持依赖一个独立的类，和两个CompletableFuture方法:
      *
      * * A Completion class with name X corresponding to function,
      *   prefaced with "Uni", "Bi", or "Or". Each class contains
@@ -193,12 +200,23 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *   include "Relay" classes/methods that don't correspond to user
      *   methods; they copy results from one stage to another.
      *
+     *   名字为X的Completion类和对应的函数，带着Uni,Bi,或者Or.每
+     *   一个类包含source(s),actions,和dependent的字段。他们是相似的，
+     *   不同于其它只有相关的函数的形式。我们这样做所以用户
+     *   不会遇到通常用法中的适配层。我们也包括不和用户方法对应的"Relay"类/方法，
+     *   他们拷贝一个stage的结果到另一个。
+     *
      * * Boolean CompletableFuture method x(...) (for example
      *   uniApply) takes all of the arguments needed to check that an
      *   action is triggerable, and then either runs the action or
      *   arranges its async execution by executing its Completion
      *   argument, if present. The method returns true if known to be
      *   complete.
+     *
+     *  CompletableFuture的布尔方法x(...)(例如uniApply) 取得所有需要的
+     *  参数来检查一个action是否可触发，并且随后要么运行这个action,或者
+     *  分配它的异步执行通过执行它的Completion参数，如果存在的话。
+     *  这个方法返回true如果完成。
      *
      * * Completion method tryFire(int mode) invokes the associated x
      *   method with its held arguments, and on success cleans up.
@@ -208,6 +226,12 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *   task. (A few classes are not used async so take slightly
      *   different forms.)  The claim() callback suppresses function
      *   invocation if already claimed by another thread.
+     *
+     *  Completion方法tryFire(int mode)调用相关的x方法带着它持有的参数，
+     *  并且一旦成功就清除。mode参数允许tryFire被调用两次(SYNC然后ASYNC);
+     *  第一个在屏幕上打架并且捕获异常当安排执行的时候，第二个当从一个任务
+     *  调用的时候。(一些类不使用异步所以用稍微不同的形式)，如果已经被另
+     *  一个线程claimed，claim()回调阻止方法调用。
      *
      * * CompletableFuture method xStage(...) is called from a public
      *   stage method of CompletableFuture x. It screens user
