@@ -58,20 +58,32 @@ import java.util.concurrent.locks.LockSupport;
  * supporting dependent functions and actions that trigger upon its
  * completion.
  *
+ * 一个可以被明确地完成的Future(设置它的值和状态)，并且被用作CompletionStage,
+ * 支持依赖的函数和动作在它完成的时候触发。
+ *
  * <p>When two or more threads attempt to
  * {@link #complete complete},
  * {@link #completeExceptionally completeExceptionally}, or
  * {@link #cancel cancel}
  * a CompletableFuture, only one of them succeeds.
  *
+ * 当两个或更多线程庶务去complete，completeExceptionally或cancel一个CompletableFuture,
+ * 只有一个会成功。
+ *
  * <p>In addition to these and related methods for directly
  * manipulating status and results, CompletableFuture implements
  * interface {@link CompletionStage} with the following policies: <ul>
+ *
+ * 除了这些和相关的直接操控状态和结果的方法，CompletableFuture实现了CompletionStage按照下面的
+ * 策略。
  *
  * <li>Actions supplied for dependent completions of
  * <em>non-async</em> methods may be performed by the thread that
  * completes the current CompletableFuture, or by any other caller of
  * a completion method.</li>
+ *
+ * 提供的依赖于非异步的方法完成的Action可能被完成当前CompletableFuture的线程执行，或
+ * 被任何其它完成方法的调用者
  *
  * <li>All <em>async</em> methods without an explicit Executor
  * argument are performed using the {@link ForkJoinPool#commonPool()}
@@ -81,12 +93,21 @@ import java.util.concurrent.locks.LockSupport;
  * tasks are instances of the marker interface {@link
  * AsynchronousCompletionTask}. </li>
  *
+ * 所有没有一个明确的Executor参数的异步方法用ForkJoinPool.commonPool()被执行。
+ * (除非它不支持最小为2的并行等级，这种情况，一个新的线程被创建来运行每一个任务)。
+ * 为了简化监听，调试，和追踪，所有生成的异步任务是AsynchronousCompletionTask的实例。
+ *
  * <li>All CompletionStage methods are implemented independently of
  * other public methods, so the behavior of one method is not impacted
  * by overrides of others in subclasses.  </li> </ul>
  *
+ * 所有的CompletionStage方法被独立于其它公共方法实现，所以方法的行为不会被子类中重写其它方法
+ * 而影响。
+ *
  * <p>CompletableFuture also implements {@link Future} with the following
  * policies: <ul>
+ *
+ * CompletableFuture也实现了Future按照下面的测策略。
  *
  * <li>Since (unlike {@link FutureTask}) this class has no direct
  * control over the computation that causes it to be completed,
@@ -104,6 +125,14 @@ import java.util.concurrent.locks.LockSupport;
  * {@link #getNow} that instead throw the CompletionException directly
  * in these cases.</li> </ul>
  *
+ * 因为(不像FutureTask)这个类没有对引起它完成的计算直接控制，取消被视为仅仅另一个
+ * 形式的异常完成。cancel方法且有像completeExceptionally一样的效果。isCompletedExceptionally
+ * 方法可以被用来判断CompletableFuture是否以任何异常地方式完成。
+ *
+ * 以防带着CompletionException异常异常地完成，get()和get(long,TimeUnit)方法抛出一个ExecutionException
+ * 异常带着相应地CompletionException中保存的相同的cause。为了简化在大部分情况下的使用，
+ * 这个类也定义的join()方法和getNow()代替这种情况下直接抛出CompletionException。
+ *
  * @author Doug Lea
  * @since 1.8
  */
@@ -118,9 +147,13 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * applies across normal vs exceptional outcomes, sync vs async
      * actions, binary triggers, and various forms of completions.
      *
+     * CompletableFuture可以有依赖的完成actions,收集在一个链式栈里面。它通过CAS
+     * 一个结果字段自动地完成，并且然后弹出并且运行这些动作。这应用普通和exceptional结果，
+     * 同步和异步actions,二元的触发，和多种形式的完成动作。
+     *
      * Non-nullness of field result (set via CAS) indicates done.  An
      * AltResult is used to box null as a result, as well as to hold
-     * exceptions.  Using a single field makes completion simple to
+     * exceptions.  Using 间 makes completion simple to
      * detect and trigger.  Encoding and decoding is straightforward
      * but adds to the sprawl of trapping and associating exceptions
      * with targets.  Minor simplifications rely on (static) NIL (to
@@ -129,6 +162,12 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * Even though some of the generics casts are unchecked (see
      * SuppressWarnings annotations), they are placed to be
      * appropriate even if checked.
+     *
+     * 非空值的字段结果(通过CAS设置)表示已经完成。一个AltResult被用来封闭null为一个
+     * 结果。也用来保存异常。使用一个单一的字段使completion检查和触发起来更简单。
+     * 解码和编码是直接的但是增加了捕获和关联异常到目标的蔓延。轻微的简化依赖NIL
+     * 作为唯一的带着null异常字段的AltResult，所以我们通常不需要明确的比较。
+     * 尽管一些一般的cast是unchecked，他们被放置在适当的位置即使被检查过。
      *
      * Dependent actions are represented by Completion objects linked
      * as Treiber stacks headed by field "stack". There are Completion
