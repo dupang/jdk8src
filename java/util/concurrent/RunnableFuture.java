@@ -40,8 +40,8 @@ package java.util.concurrent;
  * the {@code run} method causes completion of the {@code Future}
  * and allows access to its results.
  *
- * FutureÊÇÒ»¸öRunnable¡£³É¹¦Ö´ĞĞµÄrun·½·¨Ê¹FutureµÄÍê³É²¢ÇÒÔÊĞíËü
- * ·ÃÎÊËüµÄ½á¹û¡£
+ * Futureæ˜¯ä¸€ä¸ªRunnableã€‚æˆåŠŸæ‰§è¡Œçš„runæ–¹æ³•ä½¿Futureçš„å®Œæˆå¹¶ä¸”å…è®¸å®ƒ
+ * è®¿é—®å®ƒçš„ç»“æœã€‚
  *
  * @see FutureTask
  * @see Executor
@@ -54,7 +54,7 @@ public interface RunnableFuture<V> extends Runnable, Future<V> {
      * Sets this Future to the result of its computation
      * unless it has been cancelled.
      *
-     * ÉèÖÃÕâ¸öFutureµ½Õâ¸ö¼ÆËã½á¹û¡£³ı·ÇËü±»È¡Ïû¡£
+     * è®¾ç½®è¿™ä¸ªFutureåˆ°è¿™ä¸ªè®¡ç®—ç»“æœã€‚é™¤éå®ƒè¢«å–æ¶ˆã€‚
      *
      */
     void run();
