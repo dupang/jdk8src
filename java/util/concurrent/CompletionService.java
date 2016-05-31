@@ -74,6 +74,9 @@ public interface CompletionService<V> {
      * representing the pending results of the task.  Upon completion,
      * this task may be taken or polled.
      *
+     * 提交一个有返回值的任务来执行并且返回一个代表任务返回结果的Future.
+     * 一旦结束，这个任务可能被taken或polled.
+     *
      * @param task the task to submit
      * @return a Future representing pending completion of the task
      * @throws RejectedExecutionException if the task cannot be
@@ -86,6 +89,9 @@ public interface CompletionService<V> {
      * Submits a Runnable task for execution and returns a Future
      * representing that task.  Upon completion, this task may be
      * taken or polled.
+     *
+     * 提交一个Runnable任务来执行并且返回一个表示这个任务的Future.
+     * 一旦结束，这个任务可以被taken或polled.
      *
      * @param task the task to submit
      * @param result the result to return upon successful completion
@@ -102,6 +108,9 @@ public interface CompletionService<V> {
      * Retrieves and removes the Future representing the next
      * completed task, waiting if none are yet present.
      *
+     * 检索并且删除表示下一个结束的任务的Future.
+     * 如果不存在就等待。
+     *
      * @return the Future representing the next completed task
      * @throws InterruptedException if interrupted while waiting
      */
@@ -110,6 +119,7 @@ public interface CompletionService<V> {
     /**
      * Retrieves and removes the Future representing the next
      * completed task, or {@code null} if none are present.
+     * 检索并且删除代表下一个完成任务的Future.或者null如果不存在。
      *
      * @return the Future representing the next completed task, or
      *         {@code null} if none are present
