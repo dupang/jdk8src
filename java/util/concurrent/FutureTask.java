@@ -47,6 +47,11 @@ import java.util.concurrent.locks.LockSupport;
  * or cancelled (unless the computation is invoked using
  * {@link #runAndReset}).
  *
+ * 一个可取消的同步计算。这个类提供了Future的基本实现，开始和结束计算的方法，查询
+ * 来查看是否计算已经结束，并且检索计算的结果。结果只有在计算已经完成的时候检索;
+ * 如果计算还没有完成get方法就会阻塞。一旦计算已经完成，计算不能被重新开始或者取消(除非
+ * 计算被runAndReset方法调用)。
+ *
  * <p>A {@code FutureTask} can be used to wrap a {@link Callable} or
  * {@link Runnable} object.  Because {@code FutureTask} implements
  * {@code Runnable}, a {@code FutureTask} can be submitted to an
@@ -55,6 +60,9 @@ import java.util.concurrent.locks.LockSupport;
  * <p>In addition to serving as a standalone class, this class provides
  * {@code protected} functionality that may be useful when creating
  * customized task classes.
+ *
+ * FutureTask可以被用来包装一个Callable或Runnable对象。因为FutureTask实现Runnable，
+ * 一个FutureTask可以被提交给Executor来执行。
  *
  * @since 1.5
  * @author Doug Lea
@@ -71,6 +79,13 @@ public class FutureTask<V> implements RunnableFuture<V> {
      *
      * Style note: As usual, we bypass overhead of using
      * AtomicXFieldUpdaters and instead directly use Unsafe intrinsics.
+     *
+     * 修订笔记：这个不同于先前的版本，先前的这个类依赖AbstractQueuedSynchronizer,
+     * 主要用来避免意外的用户关于保留中断状态在取消竞争期间。当前的设计的同步控制依赖
+     * 一个通过CAS更新的"state"字段来追踪完成状态，还有一个简单的Treiber栈来保存等待中的线程。
+     *
+     * 风格笔记：像往常一样，我们绕过使用AtomicXFieldUpdaters的开销，相反地直接使用Unsafe
+     * 本地函数。
      */
 
     /**
@@ -82,6 +97,11 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * cancel(true)). Transitions from these intermediate to final
      * states use cheaper ordered/lazy writes because values are unique
      * and cannot be further modified.
+     *
+     * 任务的运行状态，初始为NEW.运行状态转换为终止状态只有在方法set,setExecption,cancel.
+     * 在完成的过程中，状态可能处于瞬间的COMPLETING(崦结果正在被set)或者INTERRUPTING(只有当
+     * 中断运行中的线程来满足一个取消)。从这些中间的状态到最终状态使用简单的ordered/lazy写，因为
+     * 值是唯一的并且不能被修改。
      *
      * Possible state transitions:
      * NEW -> COMPLETING -> NORMAL
@@ -110,6 +130,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
     /**
      * Returns result or throws exception for completed task.
      *
+     * 返回任务完成的结果或抛出异常
+     *
      * @param s completed state value
      */
     @SuppressWarnings("unchecked")
@@ -126,6 +148,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * Creates a {@code FutureTask} that will, upon running, execute the
      * given {@code Callable}.
      *
+     * 创建一个FutureTask，一旦运行，将执行给定的Callable.
+     *
      * @param  callable the callable task
      * @throws NullPointerException if the callable is null
      */
@@ -141,11 +165,16 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * given {@code Runnable}, and arrange that {@code get} will return the
      * given result on successful completion.
      *
+     * 创建一个FutureTask，一旦运行将会执行给定的Runnable,并且在成功完成的时候get将会返回给定的结果。
+     *
      * @param runnable the runnable task
      * @param result the result to return on successful completion. If
      * you don't need a particular result, consider using
      * constructions of the form:
      * {@code Future<?> f = new FutureTask<Void>(runnable, null)}
+     *               在成功完成时返回的结果。如果你不需要一个选定的结果，考虑使用这个形式
+     *               Future<?> f = new FutureTask<Void>(runnable,null).
+     *
      * @throws NullPointerException if the runnable is null
      */
     public FutureTask(Runnable runnable, V result) {
@@ -214,6 +243,11 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * bookkeeping. Note that you can query status inside the
      * implementation of this method to determine whether this task
      * has been cancelled.
+     *
+     * 当这个任务转换为isDone()(不管是正常或取消)的状态调用的受保护的方法。默认的
+     * 实现不做任何操作。字类可以重写这个方法来调用完成时的回调函数或执行记账。
+     * 注意你可以查询状态在这方法的实现里来状态这个任务是否已经被取消了。
+     *
      */
     protected void done() { }
 
@@ -221,8 +255,12 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * Sets the result of this future to the given value unless
      * this future has already been set or has been cancelled.
      *
+     * 设置这个future的结果为指定的值，除非这个future已经被设置或已经被取消。
+     *
      * <p>This method is invoked internally by the {@link #run} method
      * upon successful completion of the computation.
+     *
+     * 这个方法内部地被调用通过run方法。一旦计算成功地完成。
      *
      * @param v the value
      */
@@ -239,8 +277,13 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * with the given throwable as its cause, unless this future has
      * already been set or has been cancelled.
      *
+     * 使这个future报告一个ExecutionExecption,用给定的throwable作为cause,
+     * 除非这个future已经被set或已经被取消。
+     *
      * <p>This method is invoked internally by the {@link #run} method
      * upon failure of the computation.
+     *
+     * 这个方法在内部通过run方法调用，一旦计算失败。
      *
      * @param t the cause of failure
      */
@@ -292,6 +335,9 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * designed for use with tasks that intrinsically execute more
      * than once.
      *
+     * 执行计算而不设置它的结果，并且随后重新设置这个Future为初始状态，
+     * 如果计算遇到异常或被取消就失败。这被设计为执行不止一次的任务来使用
+     *
      * @return {@code true} if successfully run and reset
      */
     protected boolean runAndReset() {
@@ -327,6 +373,9 @@ public class FutureTask<V> implements RunnableFuture<V> {
     /**
      * Ensures that any interrupt from a possible cancel(true) is only
      * delivered to a task while in run or runAndReset.
+     *
+     * 确保从一个可能的cancel出来的中断只传递给正在运行的任务或runAndRest的任务。
+     *
      */
     private void handlePossibleCancellationInterrupt(int s) {
         // It is possible for our interrupter to stall before getting a
@@ -350,6 +399,9 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * Simple linked list nodes to record waiting threads in a Treiber
      * stack.  See other classes such as Phaser and SynchronousQueue
      * for more detailed explanation.
+     * 简单的链表节点记录正在等待的线程。参数其它类例如Phaser和SynchronousQueue
+     * 获取更详细的解释。
+     *
      */
     static final class WaitNode {
         volatile Thread thread;
@@ -360,6 +412,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
     /**
      * Removes and signals all waiting threads, invokes done(), and
      * nulls out callable.
+     * 移除并且唤醒所有等待的线程，调用done，并且清空callable.
+     *
      */
     private void finishCompletion() {
         // assert state > COMPLETING;
@@ -388,6 +442,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
 
     /**
      * Awaits completion or aborts on interrupt or timeout.
+     *
+     * 等待完成或者因为中断而放弃或者超时
      *
      * @param timed true if use timed waits
      * @param nanos time to wait, if timed
@@ -439,6 +495,11 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * race.  This is slow when there are a lot of nodes, but we don't
      * expect lists to be long enough to outweigh higher-overhead
      * schemes.
+     * 试着断开一个超时的或中断的等待节点来避免越来越多的垃圾。内部的节点只是简单的
+     * 无链接的没有CAS,因为它们的无害的如果他们被releasers穿越。为了避免无链接
+     * 已经移除的节点，这个列表重新穿越以防明显的竞争。当有很多节点的时候这很慢，
+     * 但是我们不期望列表足够长超过更高的开销计划。
+     *
      */
     private void removeWaiter(WaitNode node) {
         if (node != null) {
