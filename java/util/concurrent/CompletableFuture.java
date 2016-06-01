@@ -247,8 +247,19 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      *   multiple-arity methods allOf and anyOf do this pairwise to
      *   form trees of completions.
      *
+     * CompletableFuture 方法xStage()被CompletableFuture x的公平stage方法
+     * 调用。它筛选用户参数并且调用和创建stage对象。如果不是异步并且x已经
+     * 完成，立刻运行action方法。否则Completion c被创建，压入x的栈，并且开始
+     * 或触发通过c.tryFire.这了存在着竞争的可能性如果x在push的时候完成。
+     * 带着两个输入的类(例如BiApply)处理两个竞争当入栈action的时候。
+     * 第二个completion对第一个来说是一个coCompletion点，共享的所以至少一个执行
+     * 那个action。多发性的方法allOf和anyOf做这个两两来组成completion的树。
+     *
      * Note that the generic type parameters of methods vary according
      * to whether "this" is a source, dependent, or completion.
+     *
+     * 注意方法的普通类型参数根据this是否是source，dependent或者completion
+     * 而不同。
      *
      * Method postComplete is called upon completion unless the target
      * is guaranteed not to be observable (i.e., not yet returned or
@@ -259,11 +270,21 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * one exists) for further processing by its caller (see method
      * postFire).
      *
+     * 方法postComplete被调用在completion的时候除非目标保存不被可见。
+     * (也就是说，还没有返回或关联)。多线程可以调用postComplete,
+     * 这将自动地pop每一个依赖的action,并且试图通过tryFire方法触发它，以
+     * NEST模式。触发可以传播递归地，所以NESTED模式返回它的已经完成的依赖(如果存在)
+     * 为被它的调用者进一步处理。
+     *
      * Blocking methods get() and join() rely on Signaller Completions
      * that wake up waiting threads.  The mechanics are similar to
      * Treiber stack wait-nodes used in FutureTask, Phaser, and
      * SynchronousQueue. See their internal documentation for
      * algorithmic details.
+     *
+     * 阻塞方法get()和join()依赖Signaller Completions唤醒等待的线程。
+     * 这个机制和FutureTask，Phaser,和SynchronousQueue中使用的Treiber栈类似，
+     * 参数他们内部的文档来获取更详细的逻辑。
      *
      * Without precautions, CompletableFutures would be prone to
      * garbage accumulation as chains of Completions build up, each
@@ -276,6 +297,14 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * Completion fields need not be declared as final or volatile
      * because they are only visible to other threads upon safe
      * publication.
+     *
+     * 没有防御措施，CompletaleFuture将会倾向于垃圾的累加，每一个点到它的
+     * 源。所以我们尽量地把filed赋值为null(特别地参数方法Completion.detach)
+     * screening需要的检查忽略null参数可能已经获取在线程为字段赋值的过程中。
+     * 我们也试图断开解雇的Completion从栈里可能永远不会弹出。
+     * Completion字段不必要声明为final或volatile,因为他们只在安全地公布后
+     * 才对其它线程可见。
+     *
      */
 
     volatile Object result;       // Either the result or boxed AltResult
