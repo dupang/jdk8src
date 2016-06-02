@@ -323,12 +323,22 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *   workerCount, indicating the effective number of threads
      *   runState,    indicating whether running, shutting down etc
      *
+     * 最主要的池控制状态，ctl,是一个包含两个概念字段的原子的Integer
+     *
+     *  工作者数量，表示线程的有效数量
+     *  运行状态，  表示是否正在运行，关闭等等
+     *
      * In order to pack them into one int, we limit workerCount to
      * (2^29)-1 (about 500 million) threads rather than (2^31)-1 (2
      * billion) otherwise representable. If this is ever an issue in
      * the future, the variable can be changed to be an AtomicLong,
      * and the shift/mask constants below adjusted. But until the need
      * arises, this code is a bit faster and simpler using an int.
+     *
+     * 为了把他们打包成一个Int,我们限制工作者数量为(2^29)-1(大概5千万)
+     * 个线程而不是(2^31)-1(20亿)。如果在未来这是一个问题，变量可以变
+     * 成一个AtomicLong,并且调整下面的shift/mask。但是在需要改变之前，
+     * 这代码使用int有一点快，并且简单.
      *
      * The workerCount is the number of workers that have been
      * permitted to start and not permitted to stop.  The value may be
@@ -338,7 +348,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * bookkeeping before terminating. The user-visible pool size is
      * reported as the current size of the workers set.
      *
+     * workerCount是已经被允许开始但是还没结束的工作者数量。这个值可能
+     * 跟真实线程数量短暂地不同，例如当一个ThreadFactor创建线程失败，
+     * 并且当正在退出的线程在退出之前仍然执行记账。用户可见的池数量为
+     * 当前工作者集合的数量。
+     *
      * The runState provides the main lifecycle control, taking on values:
+     *
+     * 提供最主要的生命周期控制的运行状态，取值如下：
      *
      *   RUNNING:  Accept new tasks and process queued tasks
      *   SHUTDOWN: Don't accept new tasks, but process queued tasks
@@ -348,6 +365,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *             the thread transitioning to state TIDYING
      *             will run the terminated() hook method
      *   TERMINATED: terminated() has completed
+     *
+     *   RUNNING: 接受新任务和处理队列中的任务。
+     *   SHUTDOWN: 不在接受新的任务，但是处理队列中的任务
+     *   STOP:    不在接受新任务，不在处理队列中的任务，
+     *            并且中断处理中的任务
+     *   TIDYING: 所有任务已经被终止，workerCount为0,
+     *            线程状态为TIDYING将会运行terminated()方法。
+     *   TERMINATED: terminated()已经完成。
      *
      * The numerical order among these values matters, to allow
      * ordered comparisons. The runState monotonically increases over
