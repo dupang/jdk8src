@@ -45,6 +45,8 @@ import java.util.*;
  * one of possibly several pooled threads, normally configured
  * using {@link Executors} factory methods.
  *
+ * 使用线程池中的可用的线程执行每一个提交的任务，线程池通常使用Executors的方法来配置。
+ *
  * <p>Thread pools address two different problems: they usually
  * provide improved performance when executing large numbers of
  * asynchronous tasks, due to reduced per-task invocation overhead,
@@ -52,6 +54,11 @@ import java.util.*;
  * including threads, consumed when executing a collection of tasks.
  * Each {@code ThreadPoolExecutor} also maintains some basic
  * statistics, such as the number of completed tasks.
+ *
+ * 线程池解决两个不同的问题:在执行大量的异步任务的时候他们通常能提高性能，
+ * 因为减小了每一个任务的调用开销，并且提供了一个绑定和管理资源的方法，包括线程，
+ * 在执行一个组任务时消费。每一个ThreadPoolExecutor也维护一些基本的数据，例如
+ * 完成任务的数量。
  *
  * <p>To be useful across a wide range of contexts, this class
  * provides many adjustable parameters and extensibility
@@ -65,15 +72,25 @@ import java.util.*;
  * scenarios. Otherwise, use the following guide when manually
  * configuring and tuning this class:
  *
+ * 为了在广大范围的上下主文中有用，这个类提供了很多可调试的参数和可扩展的hooks.然而，
+ * 强烈要求程序员使用更方便的Executors工厂方法Executors.newCachedThreadPool().
+ * (没有边界的线程池，自动线程重复利用)，Executors#newFixedThreadPool(固定数量的线程池)
+ * 和Executors#newSingleThreadExecutor(单一的后台线程)，这些都是为了大部分常用的使用场景
+ * 事先配置好的。否则，当手动配置和调试这个类的时候使用下面的指导。
  * <dl>
  *
  * <dt>Core and maximum pool sizes</dt>
+ *
+ * 核心和最大池数量
  *
  * <dd>A {@code ThreadPoolExecutor} will automatically adjust the
  * pool size (see {@link #getPoolSize})
  * according to the bounds set by
  * corePoolSize (see {@link #getCorePoolSize}) and
  * maximumPoolSize (see {@link #getMaximumPoolSize}).
+ *
+ * 一个ThreadPoolExecutor将自动地调用池数量(参考getPoolSize)根据设置的corePoolSize
+ * 和maximumPoolSize。
  *
  * When a new task is submitted in method {@link #execute(Runnable)},
  * and fewer than corePoolSize threads are running, a new thread is
@@ -89,7 +106,16 @@ import java.util.*;
  * dynamically using {@link #setCorePoolSize} and {@link
  * #setMaximumPoolSize}. </dd>
  *
+ * 当一个新的任务在方法中execute(Runnable)被提交,并且运行中的线程小于corePoolSize,
+ * 一个新的线程被创建来处理这个请求。即使其它工作线程是空闲的。如果运行中的线程大于corePoolSize
+ * 但是小于maximumPoolSize，只有在队列满的时候才会创建一个新线程。通过调用corePoolSize和maximumPoolSize
+ * 一样大小，你创建一个固定数量的线程池。通过设置maximunPoolSize到一个无限的值比如Integer.MAX_VALUE,
+ * 你允许线程池累计任意数量的并发任务。更典型地，core和maximum池数量只在构造的时候设置，但是他们
+ * 也可以动态地改变使用setCorePoolSize和setMaximumPoolSize.
+ *
  * <dt>On-demand construction</dt>
+ *
+ * 按需构造
  *
  * <dd>By default, even core threads are initially created and
  * started only when new tasks arrive, but this can be overridden
@@ -97,7 +123,13 @@ import java.util.*;
  * #prestartAllCoreThreads}.  You probably want to prestart threads if
  * you construct the pool with a non-empty queue. </dd>
  *
+ * 默认地，尽管core thread 被初始化创建并且只在有新任务的时候才开始，但是这可以被
+ * 动态地重写使用prestartCoreThread方法或prestartAllCoreThreads。
+ * 你可能想提前启动线程如果你用一个非空的队列构建池。
+ *
  * <dt>Creating new threads</dt>
+ *
+ * 创建一个新线程。
  *
  * <dd>New threads are created using a {@link ThreadFactory}.  If not
  * otherwise specified, a {@link Executors#defaultThreadFactory} is
@@ -114,7 +146,17 @@ import java.util.*;
  * take effect in a timely manner, and a shutdown pool may remain in a
  * state in which termination is possible but not completed.</dd>
  *
+ * 新线程被创建使用ThreadFactory.如果不另外指定，使用Executors#defaultThreadFactory
+ * 创建的所有线程都是在同一个ThreadGroup,相同的优先级，并且都是非守护状态。
+ * 通过提供一个不同的线程工厂，你可以修改线程的名字，线程的组，优先级，守护状态等等。
+ * 如果ThreadFactory创建线程失败，executor将继续，但是可能不会执行任何任务。
+ * 线程应该掌握"modifyThread"RuntimePermission.如果池中的工作线程或其它线程
+ * 没有持有这个许可，服务可能会被降级：配置改变可能不会及时生效，并且一个关闭的池可能处于
+ * 已经终止但是没有完成的状态。
+ *
  * <dt>Keep-alive times</dt>
+ *
+ *  活跃的时间
  *
  * <dd>If the pool currently has more than corePoolSize threads,
  * excess threads will be terminated if they have been idle for more
@@ -131,10 +173,21 @@ import java.util.*;
  * apply this time-out policy to core threads as well, so long as the
  * keepAliveTime value is non-zero. </dd>
  *
+ * 如果当前的池有多于corePoolSize的线程，超出的线程将会被终止，如果他们空闲了多于
+ * keepAliveTime的时间。这提供了一个减少资源浪费的手段，当线程池没有被使用的时候。
+ * 如果线程池后来变得更活跃了，新线程将会构建。这个参数也可以通过方法动态地创建。
+ * 使用Long.MAX_VALUE这个值实际上就会禁用空闲的线程变得终止在关闭前。默认的，
+ * keep-alive的策略只应用在有多于corePoolSize个线程的时候。但是方法allowCoreThreadTimeOut(boolean)
+ * 也可以用来对core thread的超时策略，只要keepAliveTime的值不是0;
+ *
  * <dt>Queuing</dt>
+ *
+ * 队列
  *
  * <dd>Any {@link BlockingQueue} may be used to transfer and hold
  * submitted tasks.  The use of this queue interacts with pool sizing:
+ *
+ * 一个BlockingQueue可以用来救困转移和持有提交的任务。队列的使用和池大小相互作用。
  *
  * <ul>
  *
@@ -142,13 +195,20 @@ import java.util.*;
  * always prefers adding a new thread
  * rather than queuing.</li>
  *
+ * 如果运行的线程数小于corePoolSize,Executor总是增加一个新线程而不是加入到队列。
+ *
  * <li> If corePoolSize or more threads are running, the Executor
  * always prefers queuing a request rather than adding a new
  * thread.</li>
  *
+ * 如果大于等于corePoolSize的运行线程，Executo总是倾向于排队请求而不是新建一个线程。
+ *
  * <li> If a request cannot be queued, a new thread is created unless
  * this would exceed maximumPoolSize, in which case, the task will be
  * rejected.</li>
+ *
+ * 如果一个请求不能被排队，就会创建一个新的线程除非这会超过maximumPoolSize,如果
+ * 超过maximumPoolSize就会被拒绝。
  *
  * </ul>
  *
