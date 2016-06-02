@@ -51,6 +51,11 @@ import java.util.concurrent.locks.LockSupport;
  * methods require stamps as arguments, and fail if they do not match
  * the state of the lock. The three modes are:
  *
+ * 基于能力的带着三个模式的为了控制读/写访问的锁，StampedLock的状态由版本和模式组成。
+ *
+ * Lock获取方法返回一个邮票(标志)表示和控制访问锁状态;这些方法的'try'版本可以返回特殊的
+ * 0值来表示获取锁失败。Lock释放和转换方法需要stamps作为参数。并且如果和锁的状态不匹配
+ * 就失败。三个模式是：
  * <ul>
  *
  *  <li><b>Writing.</b> Method {@link #writeLock} possibly blocks
@@ -60,10 +65,17 @@ import java.util.concurrent.locks.LockSupport;
  *   the lock is held in write mode, no read locks may be obtained,
  *   and all optimistic read validations will fail.  </li>
  *
+ *  Writing Method(writeLock) 可能阻塞等待的排它访问，返回一个stamp可以用在
+ *  unlockWrite方法中来释放锁。不定时和定时的版本tryWriteLock也提供了。当锁以
+ *  写模式锁定，没有读锁可以被获得，并且所有乐观读验证将会失败。
+ *
  *  <li><b>Reading.</b> Method {@link #readLock} possibly blocks
  *   waiting for non-exclusive access, returning a stamp that can be
  *   used in method {@link #unlockRead} to release the lock. Untimed
  *   and timed versions of {@code tryReadLock} are also provided. </li>
+ *
+ *  Reading Method(readLock)可能阻塞等待的非排它访问，返回一个stamp可以用在
+ *  访问unlockRead来释放锁。也提供了非定时的和定时的版本tryReadLock.
  *
  *  <li><b>Optimistic Reading.</b> Method {@link #tryOptimisticRead}
  *   returns a non-zero stamp only if the lock is not currently held
@@ -83,6 +95,16 @@ import java.util.concurrent.locks.LockSupport;
  *   reference, and then accessing one of its fields, elements or
  *   methods. </li>
  *
+ *   乐观读方法（tryOptimisticRead） 返回一个非0的stamp，只有在锁当前没有被以
+ *   写模式持有。validate方法返回true，如果锁从获取一个给定的stamp还没有被以写模式
+ *   获取到。这个模式可以被认为是非常弱的版本的读锁，可以被一个写在任何时候打断。
+ *   乐观模式用在短的只读的代码片断经常减少竞争和提高吞吐量。但是，它的使用是天生地
+ *   脆弱的。乐观读部分应该只读字段并且保留他们在本地变量里用来在validation后用。
+ *   以乐观模式读字段可能非常不一致，只当你对数据表示足够熟悉时才适用，并且不断地调用
+ *   validate()方法来检查一致性。例如，这样的步骤通常需要在首先读一个对象或数组引用，
+ *   并且然后访问它的其中一个字段，元素或访问的时候。
+ *
+ *
  * </ul>
  *
  * <p>This class also supports methods that conditionally provide
@@ -93,6 +115,11 @@ import java.util.concurrent.locks.LockSupport;
  * the lock is available. The forms of these methods are designed to
  * help reduce some of the code bloat that otherwise occurs in
  * retry-based designs.
+ *
+ * 这个类也支持有条件地提供三个模式之间的转换。例如，tryConvertToWriteLock试图
+ * "提升"一个模式，返回一个有效的写stamp(1)如果已经处于写模式，(2)处于读模式，并且
+ * 没有其它读或者（3）处于乐观模式，并且锁可用。这个方法的形式被设计用来帮助减少
+ * 一些出现在retry-based设计模式的代码膨胀。
  *
  * <p>StampedLocks are designed for use as internal utilities in the
  * development of thread-safe components. Their use relies on
@@ -112,6 +139,15 @@ import java.util.concurrent.locks.LockSupport;
  * into initial unlocked state, so they are not useful for remote
  * locking.
  *
+ * StampedLocks被设计作为开发线程安全的组件的内部的工具。他们的使用依赖
+ * 对他们需要保护的内部数据特性，对象和方法的了解。他们不是可重入的，所以被锁的部分不应该
+ * 调用其它未知的方法，这可能试图重新获取锁（尽管你可以传一个stamp到其它方法）。
+ * read锁模式的使用依赖相关代码无负作用的。没有验证的乐观读部分不能调用不能容忍潜在不一致的方法，
+ * Stamps使用有限的表示，并且不是加密地安全（也就是说，一个合法的stamp可能被猜到）。
+ * Stamp值可以重新利用在连续运行一年(或者更短)。持有的stamp没有使用或验证超过这个期限
+ * 可能不能正确地验证。StampedLock是可以被序列化的，但是只能反序列化成没有被锁的状态，
+ * 所以他们对远程锁是没有用的。
+ *
  * <p>The scheduling policy of StampedLock does not consistently
  * prefer readers over writers or vice versa.  All "try" methods are
  * best-effort and do not necessarily conform to any scheduling or
@@ -119,12 +155,20 @@ import java.util.concurrent.locks.LockSupport;
  * or converting locks does not carry any information about the state
  * of the lock; a subsequent invocation may succeed.
  *
+ * StampedLock的调度策略不总是写比读优先或返过来。所有的try方法是最大限度地并且
+ * 不必要符合任何调度或公平策略。从任何try方法返回0没有关于锁的状态的任何信息。
+ * 随后的调用可能成功。
+ *
  * <p>Because it supports coordinated usage across multiple lock
  * modes, this class does not directly implement the {@link Lock} or
  * {@link ReadWriteLock} interfaces. However, a StampedLock may be
  * viewed {@link #asReadLock()}, {@link #asWriteLock()}, or {@link
  * #asReadWriteLock()} in applications requiring only the associated
  * set of functionality.
+ *
+ * 因为它支持在多个锁模式之间协调使用，这个类不直接实现Lock或ReadWriteLock接口。
+ * 然而，StampedLock可以看作是ReadLock,WriteLock或readWriteLock在需要相应的
+ * 功能时。
  *
  * <p><b>Sample Usage.</b> The following illustrates some usage idioms
  * in a class that maintains simple two-dimensional points. The sample
@@ -200,6 +244,8 @@ public class StampedLock implements java.io.Serializable {
      * and Ordered RW locks (see Shirako et al
      * http://dl.acm.org/citation.cfm?id=2312015)
      *
+     * 设计采用序列锁的元素。
+     *
      * Conceptually, the primary state of the lock includes a sequence
      * number that is odd when write-locked and even otherwise.
      * However, this is offset by a reader count that is non-zero when
@@ -210,6 +256,10 @@ public class StampedLock implements java.io.Serializable {
      * readers exceeds the count field. We do this by treating the max
      * reader count value (RBITS) as a spinlock protecting overflow
      * updates.
+     *
+     * 概念上来讲，锁的主要状态包含一个序列的奇数当写锁和其它的。
+     * 然而，当读锁时，这个锁被一个读我数量偏移。读的数量被忽略当验证"乐观"序列锁-读-形式
+     * 的stamps.因为我们必须使用一个小的有限的位数为了读，
      *
      * Waiters use a modified form of CLH lock used in
      * AbstractQueuedSynchronizer (see its internal documentation for
