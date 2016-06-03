@@ -1185,10 +1185,19 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Initially idle threads are usually created via
      * prestartCoreThread or to replace other dying workers.
      *
+     *                  新线程应该首先运行的任务(如果没有就是null).Workers
+     *                  被创建带着初始化第一个任务(在方法execute()中)来绕过
+     *                  排队当有小于corePoolSize的线程(这时候总是start一个)，
+     *                  或者当队列满的时候(这时候我必须绕过队列)
+     *                  初始化空闲的线程一般通过prestartCoreThread或替换其它死
+     *                  的workers来创建。
+     *
      * @param core if true use corePoolSize as bound, else
      * maximumPoolSize. (A boolean indicator is used here rather than a
      * value to ensure reads of fresh values after checking other pool
      * state).
+     *             如果true使用corePoolSize作为界限，否则使用maximumPoolSize.
+     *             (一个布尔指示符在这里使用而不是一个值来确保在检查其它池的状态后读到最新的值)
      * @return true if successful
      */
     private boolean addWorker(Runnable firstTask, boolean core) {
@@ -1264,6 +1273,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * - decrements worker count
      * - rechecks for termination, in case the existence of this
      *   worker was holding up termination
+     *
+     *   回滚worker线程创建。
+     *   -- 从workers中删除worker,如果存在
+     *   -- 递减worker数量
+     *   -- 重新检查终止，以防这个worker的退出正在持有termination.
      */
     private void addWorkerFailed(Worker w) {
         final ReentrantLock mainLock = this.mainLock;
@@ -1287,6 +1301,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * it exited due to user task exception or if fewer than
      * corePoolSize workers are running or queue is non-empty but
      * there are no workers.
+     *
+     * 为死去的worker执行清除和记账。只能从worker线程中被调用。除非设置了completedAbruptly，
+     * 假设workerCount已经被调整考虑退出。这个方法从工作集合中删除线程，并且可能终止线程
+     * 池或替换worker如果它由于用户任务异常而退出或如果小于corePoolSize工作者正在运行或
+     * 队列不为空但是没有工作者。
      *
      * @param w the worker
      * @param completedAbruptly if the worker died due to user exception
@@ -1333,6 +1352,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *    both before and after the timed wait, and if the queue is
      *    non-empty, this worker is not the last thread in the pool.
      *
+     * 执行阻塞或超时等待任务，取决于当前配置，或者返回null如果这个worker必须退出因为
+     * 如下其中一个原因：
+     * 1. 有多于maximumPoolSize个workers(由于调用setMaximumPoolSize).
+     * 2. 线程池被停止。
+     * 3. 线程池被关闭并且队列为空。
+     * 4. worker等待任务的时候超时，并且超时的worker终止(也就是说，allowCoreThreadTimeOut||workerCount > corePoolSize)
+     *    在超时等待之前和之后，并且如果队列不为空，这个worker不是池中的最后一个线程。
+     *
      * @return task, or null if the worker must exit, in which case
      *         workerCount is decremented
      */
@@ -1378,6 +1405,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Main worker run loop.  Repeatedly gets tasks from queue and
      * executes them, while coping with a number of issues:
      *
+     * 主要的worker运行逻辑。不断地从队列中获取任务并且执行它们，同时应对一些问题：
+     *
      * 1. We may start out with an initial task, in which case we
      * don't need to get the first one. Otherwise, as long as pool is
      * running, we get tasks from getTask. If it returns null then the
@@ -1386,15 +1415,26 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * external code, in which case completedAbruptly holds, which
      * usually leads processWorkerExit to replace this thread.
      *
+     * 1.我们可以从最初的任务开始，这时候我们不需要获取第一个任务。否则，只要池正在
+     * 运行，我们从getTask获取任务。如果返回null那么worker退出由于改变的池状态或
+     * 配置参数。从外部代码抛出的异常中退出，这时候completedAbruptly持有，
+     * 通常导致processWorkerExit来代替这个线程。
+     *
      * 2. Before running any task, the lock is acquired to prevent
      * other pool interrupts while the task is executing, and then we
      * ensure that unless pool is stopping, this thread does not have
      * its interrupt set.
      *
+     * 2. 在运行任何任务之前，锁被获取来防止在任务执行的时候其它池中断，并且然后
+     * 我们确保除非池正在停止，这个线程没有设置中断。
+     *
      * 3. Each task run is preceded by a call to beforeExecute, which
      * might throw an exception, in which case we cause thread to die
      * (breaking loop with completedAbruptly true) without processing
      * the task.
+     *
+     * 3. 每一个任务运行前都会调用beforeExecute，这可能抛出一个异常，这时候我们引起
+     *    线程死亡(打断循环带着completedAbruptly为true)不处理这个任务。
      *
      * 4. Assuming beforeExecute completes normally, we run the task,
      * gathering any of its thrown exceptions to send to afterExecute.
@@ -1405,15 +1445,26 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * UncaughtExceptionHandler).  Any thrown exception also
      * conservatively causes thread to die.
      *
+     * 4.如果beforeExecute正常地完成，我们运行这上任务，收集任何它抛出的异常送给afterExecute。
+     *   我们分别处理RuntimeException,错误(规范保证两种我们都可以捕获)和任何Throwables。
+     *   因为我们不能再次抛出Throwables在Runnable.run中，我们包装他们在Errors中()
+     *   任何抛出的异常也引起线程死亡。
+     *
      * 5. After task.run completes, we call afterExecute, which may
      * also throw an exception, which will also cause thread to
      * die. According to JLS Sec 14.20, this exception is the one that
      * will be in effect even if task.run throws.
      *
+     * 5. 在task.run完成之后，我们调用afterExecute，这也可能抛出一个异常，也可能导致
+     * 线程死去。根据JLS Sec 14.20，这个异常是将会起作用的一个，即使task.run抛出异常。
+     *
      * The net effect of the exception mechanics is that afterExecute
      * and the thread's UncaughtExceptionHandler have as accurate
      * information as we can provide about any problems encountered by
      * user code.
+     *
+     * 异常机制的效果是afterExecute和线程的UncaughtExceptionHandler具有和我们可能提供
+     * 的在用户代码中遇到的任何问题一样的正确的情报。
      *
      * @param w the worker
      */
