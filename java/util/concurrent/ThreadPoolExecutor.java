@@ -932,6 +932,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Common form of interruptIdleWorkers, to avoid having to
      * remember what the boolean argument means.
+     *
+     * interruptIdleWorker一般模式，避免不得不记住参数的意思。
      */
     private void interruptIdleWorkers() {
         interruptIdleWorkers(false);
@@ -942,11 +944,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /*
      * Misc utilities, most of which are also exported to
      * ScheduledThreadPoolExecutor
+     *
+     * 其它工具，其中的部分暴露给ScheduledThreadPoolExecutor。
      */
 
     /**
      * Invokes the rejected execution handler for the given command.
      * Package-protected for use by ScheduledThreadPoolExecutor.
+     *
+     * 带着给定的命令调用拒绝执行拦截器。
+     * 可被ScheduledThreadPoolExecutor使用。
      */
     final void reject(Runnable command) {
         handler.rejectedExecution(command, this);
@@ -956,6 +963,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Performs any further cleanup following run state transition on
      * invocation of shutdown.  A no-op here, but used by
      * ScheduledThreadPoolExecutor to cancel delayed tasks.
+     *
+     * 执行更进一步的清理在调用shutdown的运行状态转换之后。
+     * 这里无须操作，但是被ScheduledThreadPoolExecutor用来
+     * 取消延迟的任务。
      */
     void onShutdown() {
     }
@@ -963,6 +974,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * State check needed by ScheduledThreadPoolExecutor to
      * enable running tasks during shutdown.
+     *
+     * ScheduledThreadPoolExecutor需要的状态检查来使在关闭的
+     * 时候运行任务。
      *
      * @param shutdownOK true if should return true if SHUTDOWN
      */
@@ -976,6 +990,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * drainTo. But if the queue is a DelayQueue or any other kind of
      * queue for which poll or drainTo may fail to remove some
      * elements, it deletes them one by one.
+     *
+     * 使任务队列变组织成一个新的list,通常使用drainTo。但是如果队列是
+     * 一个DelayQueue或任何poll或drainTo可能移除一些元素失败的其它队列，
+     * 它一个接一个地删除元素。
      */
     private List<Runnable> drainQueue() {
         BlockingQueue<Runnable> q = workQueue;
@@ -1005,6 +1023,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * creation fails, either due to the thread factory returning
      * null, or due to an exception (typically OutOfMemoryError in
      * Thread.start()), we roll back cleanly.
+     *
+     * 检查一个新的worker是否可以被加进来根据当前池的状态和给定的
+     * 边界(core或maximum).如果是这样，worker数量相应地调整，并且如果
+     * 可能，一个新的worker被创建和开始，运行firstTask作为它的第一个任务。
+     * 如果池被停止或关闭，这个方法返回false.如果线程工厂创建线程失败
+     * 也会返回false.如果线程创建失败，由于线程工厂返回null或由于
+     * 一个异常(通常是Thread.start()OutOfMemoryError),我们干净地回滚。
      *
      * @param firstTask the task the new thread should run first (or
      * null if none). Workers are created with an initial first task
