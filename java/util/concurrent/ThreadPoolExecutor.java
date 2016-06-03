@@ -1520,17 +1520,36 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * It may be more convenient to use one of the {@link Executors} factory
      * methods instead of this general purpose constructor.
      *
+     * 用给定的初始化参数和默认的线程工厂和拒绝执行拦截器来创建一个新的ThreadPoolExecutor。
+     * 用Executors的工厂方法而不是这种通用的构造函数可能更方便一些。
+     *
      * @param corePoolSize the number of threads to keep in the pool, even
      *        if they are idle, unless {@code allowCoreThreadTimeOut} is set
+     *
+     *                     保持在池中的线程数量，即使它们是空闲的，除非设置了allowCoreThreadTimeOut
+     *
      * @param maximumPoolSize the maximum number of threads to allow in the
      *        pool
+     *                        池中允许的最大线程数量
+     *
      * @param keepAliveTime when the number of threads is greater than
      *        the core, this is the maximum time that excess idle threads
      *        will wait for new tasks before terminating.
+     *
+     *                      当线程数量大于core,在空闲的超过的线程数量终止之间
+     *                      等待的时间
+     *
      * @param unit the time unit for the {@code keepAliveTime} argument
+     *
+     *             keepAliveTime参数的时间单位
+     *
      * @param workQueue the queue to use for holding tasks before they are
      *        executed.  This queue will hold only the {@code Runnable}
      *        tasks submitted by the {@code execute} method.
+     *
+     *                  在任务被执行前持有任务的队列。这个队列将只持有被execute方法
+     *                  提交的Runnable任务
+     *
      * @throws IllegalArgumentException if one of the following holds:<br>
      *         {@code corePoolSize < 0}<br>
      *         {@code keepAliveTime < 0}<br>
@@ -1674,6 +1693,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * executor has been shutdown or because its capacity has been reached,
      * the task is handled by the current {@code RejectedExecutionHandler}.
      *
+     * 执行给定的任务在不久的某个时间。任务可能在新的线程或一个存在的线程中执行。
+     * 如果任务不能被提交或执行，因为这个executor已经关闭或因为已经达到最大容量了，
+     * 任务被当前的RejectedExecutionHandler处理
+     *
      * @param command the task to execute
      * @throws RejectedExecutionException at discretion of
      *         {@code RejectedExecutionHandler}, if the task
@@ -1702,6 +1725,17 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * 3. If we cannot queue task, then we try to add a new
          * thread.  If it fails, we know we are shut down or saturated
          * and so reject the task.
+         *
+         * 用3步来处理：
+         * 1. 如果正在运行的线程小于corePoolSize,试图开启一个新线程，用给定的命令作为它的
+         *    第一个任务。调用addWorker自动地检查runState和workerCount,并且防止false
+         *    alarm加入线程当它不能的时候，通过返回false.
+         * 2. 如果一个任务可以成功地加入队列，那么我们仍然需要再次检查是否我们应该加入一个线程
+         *    (因为正在退出的死掉从上一次检查之后)或者池关闭因为进入这个方法。所以我们重新检查
+         *    状态并且如果必要回滚入队如果已经停止，或者开启一个新线程如果没有线程。
+         * 3. 如果我们不能把任务加入队列，那么我们试图增加一个新线程。如果失败，我们知道
+         *    我们正在关闭或饱和并且拒绝任务。
+         *
          */
         int c = ctl.get();
         if (workerCountOf(c) < corePoolSize) {
@@ -1728,6 +1762,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * <p>This method does not wait for previously submitted tasks to
      * complete execution.  Use {@link #awaitTermination awaitTermination}
      * to do that.
+     *
+     * 启动一个顺序的关闭以先前提交的任务执行的顺序，但是不再接受新的任务。
+     * 如果已经关闭，再次调用不会有另外的效果。
+     *
+     * 这个方法不不等待先前提交的任务完成执行。如果需要提交的任务完成
+     * 使用awaitTermination
      *
      * @throws SecurityException {@inheritDoc}
      */
