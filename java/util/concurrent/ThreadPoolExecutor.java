@@ -823,18 +823,26 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         /**
          * This class will never be serialized, but we provide a
          * serialVersionUID to suppress a javac warning.
+         *
+         * 这个类将永远不会被序列化，但是我们提供了一个serialVersionUID
+         * 来防止javac提醒。
          */
         private static final long serialVersionUID = 6138294804551838833L;
 
         /** Thread this worker is running in.  Null if factory fails. */
+        //正在这个worker中运行的线程。如果factory失败就是null.
         final Thread thread;
         /** Initial task to run.  Possibly null. */
+        //运行的初始任务，可能null
         Runnable firstTask;
         /** Per-thread task counter */
+        //每一个任务的任务数量
         volatile long completedTasks;
 
         /**
          * Creates with given first task and thread from ThreadFactory.
+         *
+         * 用给定的第一个任务和从ThreadFactor创建的线程创建。
          * @param firstTask the first task (null if none)
          */
         Worker(Runnable firstTask) {
@@ -844,6 +852,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         }
 
         /** Delegates main run loop to outer runWorker  */
+        //代理主要的运行循环到外面的runWorker
         public void run() {
             runWorker(this);
         }
@@ -852,6 +861,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         //
         // The value 0 represents the unlocked state.
         // The value 1 represents the locked state.
+        //锁方法
+        //0值表示未锁住状态
+        //1值表示销售状态
 
         protected boolean isHeldExclusively() {
             return getState() != 0;
@@ -889,11 +901,15 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     /*
      * Methods for setting control state
+     *
+     * 设置控制状态的方法
      */
 
     /**
      * Transitions runState to given target, or leaves it alone if
      * already at least the given target.
+     *
+     * 转换runState到一个给定的目标，或者不做任务操作如果已经处于目标状态。
      *
      * @param targetState the desired state, either SHUTDOWN or STOP
      *        (but not TIDYING or TERMINATED -- use tryTerminate for that)
@@ -916,6 +932,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * termination possible -- reducing worker count or removing tasks
      * from the queue during shutdown. The method is non-private to
      * allow access from ScheduledThreadPoolExecutor.
+     *
+     * 转换为TERMINATED状态如果(SHUTDOWN和池和队列为空)或者(STOP和池为空)。
+     * 如果有资格终止但是workerCount不为0，中断一个空闲的worker确保关闭信号
+     * 传播。这个方法必须调用在任何可能使终止的动作之后--减少工作者数量或
+     * 关闭时从队列中移除任务。这个方法不是私有的，允许从ScheduledThreadPoolExecutor
+     * 中访问。
      */
     final void tryTerminate() {
         for (;;) {
@@ -950,6 +972,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     /*
      * Methods for controlling interrupts to worker threads.
+     * 控制中断工作者线程的方法。
      */
 
     /**
@@ -959,6 +982,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * to interrupt each worker thread. This might not be true even if
      * first check passed, if the SecurityManager treats some threads
      * specially.
+     *
+     * 如果有一个安全管理者，确保调用者有许可关闭线程(参考shutdownPerm).
+     * 如果这个通过，另外确保调用者被允许中断每一个工作者线程。这可能不为
+     * true即使第一个检查通过，如果SecurityManager特殊对待一些线程。
+     *
      */
     private void checkShutdownAccess() {
         SecurityManager security = System.getSecurityManager();
@@ -978,6 +1006,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Interrupts all threads, even if active. Ignores SecurityExceptions
      * (in which case some threads may remain uninterrupted).
+     *
+     * 中断所有的线程，即使是正在活跃。忽略SecurityExceptions
+     * (这个情况一些线程可能仍处于没有被打断的状态)
      */
     private void interruptWorkers() {
         final ReentrantLock mainLock = this.mainLock;
@@ -997,6 +1028,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * SecurityExceptions (in which case some threads may remain
      * uninterrupted).
      *
+     * 中断可能正在等待任务的线程(如未被锁定)所以他们可以检查
+     * 终止或配置改变。忽略SecurityExceptions(这个情况一些线程可能仍处于没有被打断的状态)
+     *
      * @param onlyOne If true, interrupt at most one worker. This is
      * called only from tryTerminate when termination is otherwise
      * enabled but there are still other workers.  In this case, at
@@ -1008,6 +1042,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * interrupt only one idle worker, but shutdown() interrupts all
      * idle workers so that redundant workers exit promptly, not
      * waiting for a straggler task to finish.
+     *
+     * 如果true,最多中断一个worker.这个方法只能从tryTerminate方法
+     * 调用，当终止时仍有其它worker.这种情况，最多一个等待中的worker被
+     *                中断来传播关闭信号以防所有线程都在等待。
+     *                中断任何线程确保新到的workers从关闭开始也将
+     *                最终退出。
+     *                为了保证最终终止，它满足总是只中断一个空闲的worker,
+     *                但是shutdown()中断所有的空闲workers以便过剩的worder
+     *                及时地退出，不等待一个落伍的任务结束。
+     *
      */
     private void interruptIdleWorkers(boolean onlyOne) {
         final ReentrantLock mainLock = this.mainLock;
@@ -1034,6 +1078,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Common form of interruptIdleWorkers, to avoid having to
      * remember what the boolean argument means.
+     *
+     * interruptIdleWorker一般模式，避免不得不记住参数的意思。
      */
     private void interruptIdleWorkers() {
         interruptIdleWorkers(false);
@@ -1044,11 +1090,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /*
      * Misc utilities, most of which are also exported to
      * ScheduledThreadPoolExecutor
+     *
+     * 其它工具，其中的部分暴露给ScheduledThreadPoolExecutor。
      */
 
     /**
      * Invokes the rejected execution handler for the given command.
      * Package-protected for use by ScheduledThreadPoolExecutor.
+     *
+     * 带着给定的命令调用拒绝执行拦截器。
+     * 可被ScheduledThreadPoolExecutor使用。
      */
     final void reject(Runnable command) {
         handler.rejectedExecution(command, this);
@@ -1058,6 +1109,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Performs any further cleanup following run state transition on
      * invocation of shutdown.  A no-op here, but used by
      * ScheduledThreadPoolExecutor to cancel delayed tasks.
+     *
+     * 执行更进一步的清理在调用shutdown的运行状态转换之后。
+     * 这里无须操作，但是被ScheduledThreadPoolExecutor用来
+     * 取消延迟的任务。
      */
     void onShutdown() {
     }
@@ -1065,6 +1120,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * State check needed by ScheduledThreadPoolExecutor to
      * enable running tasks during shutdown.
+     *
+     * ScheduledThreadPoolExecutor需要的状态检查来使在关闭的
+     * 时候运行任务。
      *
      * @param shutdownOK true if should return true if SHUTDOWN
      */
@@ -1078,6 +1136,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * drainTo. But if the queue is a DelayQueue or any other kind of
      * queue for which poll or drainTo may fail to remove some
      * elements, it deletes them one by one.
+     *
+     * 使任务队列变组织成一个新的list,通常使用drainTo。但是如果队列是
+     * 一个DelayQueue或任何poll或drainTo可能移除一些元素失败的其它队列，
+     * 它一个接一个地删除元素。
      */
     private List<Runnable> drainQueue() {
         BlockingQueue<Runnable> q = workQueue;
@@ -1107,6 +1169,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * creation fails, either due to the thread factory returning
      * null, or due to an exception (typically OutOfMemoryError in
      * Thread.start()), we roll back cleanly.
+     *
+     * 检查一个新的worker是否可以被加进来根据当前池的状态和给定的
+     * 边界(core或maximum).如果是这样，worker数量相应地调整，并且如果
+     * 可能，一个新的worker被创建和开始，运行firstTask作为它的第一个任务。
+     * 如果池被停止或关闭，这个方法返回false.如果线程工厂创建线程失败
+     * 也会返回false.如果线程创建失败，由于线程工厂返回null或由于
+     * 一个异常(通常是Thread.start()OutOfMemoryError),我们干净地回滚。
      *
      * @param firstTask the task the new thread should run first (or
      * null if none). Workers are created with an initial first task
