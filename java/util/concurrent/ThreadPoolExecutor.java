@@ -1800,6 +1800,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * cancels tasks via {@link Thread#interrupt}, so any task that
      * fails to respond to interrupts may never terminate.
      *
+     * 试图停止所有正在执行的任务，停止处理所有等待的任务，并且返回
+     * 正在等待执行的list.在从这个方法返回的时候这些任务这些任务
+     * 被从队列中删除。
+     *
+     * 这个方法不等正在执行的任务结束。如果想这样可以使用awaitTermination。
+     * 不保证能够停止所有正在处理的任务。这个实现通过Thread.interupt取消
+     * 任务，所以没有响应中断的任何任务可能永远不会中止。
+     *
      * @throws SecurityException {@inheritDoc}
      */
     public List<Runnable> shutdownNow() {
