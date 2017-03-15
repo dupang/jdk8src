@@ -25,51 +25,55 @@
 
 package java.lang;
 
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Array;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.GenericDeclaration;
-import java.lang.reflect.Member;
-import java.lang.reflect.Field;
-import java.lang.reflect.Executable;
-import java.lang.reflect.Method;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.AnnotatedType;
-import java.lang.ref.SoftReference;
-import java.io.InputStream;
-import java.io.ObjectStreamField;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Objects;
 import sun.misc.Unsafe;
 import sun.reflect.CallerSensitive;
 import sun.reflect.ConstantPool;
 import sun.reflect.Reflection;
 import sun.reflect.ReflectionFactory;
+import sun.reflect.annotation.AnnotationParser;
+import sun.reflect.annotation.AnnotationSupport;
+import sun.reflect.annotation.AnnotationType;
+import sun.reflect.annotation.TypeAnnotationParser;
 import sun.reflect.generics.factory.CoreReflectionFactory;
 import sun.reflect.generics.factory.GenericsFactory;
 import sun.reflect.generics.repository.ClassRepository;
-import sun.reflect.generics.repository.MethodRepository;
 import sun.reflect.generics.repository.ConstructorRepository;
+import sun.reflect.generics.repository.MethodRepository;
 import sun.reflect.generics.scope.ClassScope;
-import sun.security.util.SecurityConstants;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Proxy;
-import sun.reflect.annotation.*;
 import sun.reflect.misc.ReflectUtil;
+import sun.security.util.SecurityConstants;
+
+import java.io.InputStream;
+import java.io.ObjectStreamField;
+import java.lang.annotation.Annotation;
+import java.lang.ref.SoftReference;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Field;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Instances of the class {@code Class} represent classes and
@@ -83,10 +87,18 @@ import sun.reflect.misc.ReflectUtil;
  * {@code double}), and the keyword {@code void} are also
  * represented as {@code Class} objects.
  *
+ * Class类实例表示一个正在运行的java应用程序的类和接口。一个枚举一个种类并且
+ * 一个注解是一种接口。每一个数组也属于一个类，它被映射为一个Class对象，这个对象
+ * 被所有带有相同远程类型和相同长度的所有数组共享。java的原始类型boolean,byte,char,short,
+ * int,long,float和double,和关键字void也被表示为一个Class对象。
+ *
  * <p> {@code Class} has no public constructor. Instead {@code Class}
  * objects are constructed automatically by the Java Virtual Machine as classes
  * are loaded and by calls to the {@code defineClass} method in the class
  * loader.
+ *
+ * Class没有公共的构造器。相反地Class对象被Java虚拟机当类加载的时候和
+ * 通过调用类加载器的defineClass方法自动地构建。
  *
  * <p> The following example uses a {@code Class} object to print the
  * class name of an object:
@@ -98,10 +110,15 @@ import sun.reflect.misc.ReflectUtil;
  *     }
  * </pre></blockquote>
  *
+ * 下面的例子使用一个Class对象来打印一个对象的类名称。
+ *
  * <p> It is also possible to get the {@code Class} object for a named
  * type (or for void) using a class literal.  See Section 15.8.2 of
  * <cite>The Java&trade; Language Specification</cite>.
  * For example:
+ *
+ * 它是可能的来为一个命名的类型(或一个void)使用一个class字面量来获取Class对象。
+ * 参考java参考手册的15.8.2部分。
  *
  * <blockquote>
  *     {@code System.out.println("The name of class Foo is: "+Foo.class.getName());}
@@ -133,6 +150,9 @@ public final class Class<T> implements java.io.Serializable,
      * Private constructor. Only the Java Virtual Machine creates Class objects.
      * This constructor is not used and prevents the default constructor being
      * generated.
+     *
+     * 私有的构造器，只用Java虚拟机创建Class对象。这个构造器不被使用并且阻止默认的
+     * 构造器被产生。
      */
     private Class(ClassLoader loader) {
         // Initialize final field for classLoader.  The initialization value of non-null
@@ -148,6 +168,9 @@ public final class Class<T> implements java.io.Serializable,
      * primitive type, this method returns the name of the primitive type.  If
      * this {@code Class} object represents void this method returns
      * "void".
+     * 转换对象为一个字符串。字符串表示是一个字符串“class”或"interface",后面
+     * 跟着一个空格，后面是getName()方法返回的类的全限定名，如果Class对象代表一个原始
+     * 类型，方法返回原始类型的名称。如果Class对象表示void，这个方法返回"void".
      *
      * @return a string representation of this class object.
      */
@@ -160,6 +183,8 @@ public final class Class<T> implements java.io.Serializable,
      * Returns a string describing this {@code Class}, including
      * information about modifiers and type parameters.
      *
+     * 返回一个描述这个Class的字符串，包括修饰语和类型参数的信息。
+     *
      * The string is formatted as a list of type modifiers, if any,
      * followed by the kind of type (empty string for primitive types
      * and {@code class}, {@code enum}, {@code interface}, or
@@ -167,16 +192,23 @@ public final class Class<T> implements java.io.Serializable,
      * by the type's name, followed by an angle-bracketed
      * comma-separated list of the type's type parameters, if any.
      *
+     * 字符串格式化为一系列类型修饰符，如果有的话，后面跟着类型(对于原型类型是空字符串，
+     * 和class，enum,interface,或@interface，相应地),后面是类型的名称，
+     * 后面是一个<逗号分隔的类型的类型参数的列表，如果有的话。
+     *
      * A space is used to separate modifiers from one another and to
      * separate any modifiers from the kind of type. The modifiers
      * occur in canonical order. If there are no type parameters, the
      * type parameter list is elided.
      *
+     * 一个空格被用来分隔修饰符和分隔类型和修饰符。修饰符以正序出现。
+     * 如果没有类型参数，类型参数列表被省略。
+     *
      * <p>Note that since information about the runtime representation
      * of a type is being generated, modifiers not present on the
      * originating source code or illegal on the originating source
      * code may be present.
-     *
+     * 注意
      * @return a string describing this {@code Class}, including
      * information about modifiers and type parameters
      *
@@ -235,8 +267,12 @@ public final class Class<T> implements java.io.Serializable,
      *  {@code Class.forName(className, true, currentLoader)}
      * </blockquote>
      *
+     * 用给定的字符串名称返回一个相关的类或接口Class对象。调用这个方法相当于：
+     * Class.forName(className, true, currentLoader)
+     *
      * where {@code currentLoader} denotes the defining class loader of
      * the current class.
+     * 这里的currentLoader为当前类的类加载器。
      *
      * <p> For example, the following code fragment returns the
      * runtime {@code Class} descriptor for the class named
