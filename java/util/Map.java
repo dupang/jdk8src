@@ -34,8 +34,12 @@ import java.io.Serializable;
  * An object that maps keys to values.  A map cannot contain duplicate keys;
  * each key can map to at most one value.
  *
+ * 映射键和值的对象。一个map不能包含重复的key;一个key最多映射到一个值。
+ *
  * <p>This interface takes the place of the <tt>Dictionary</tt> class, which
  * was a totally abstract class rather than an interface.
+ *
+ * 这个接口取代Dictionary类，它是一个抽象的类而不是接口。
  *
  * <p>The <tt>Map</tt> interface provides three <i>collection views</i>, which
  * allow a map's contents to be viewed as a set of keys, collection of values,
@@ -44,6 +48,10 @@ import java.io.Serializable;
  * elements.  Some map implementations, like the <tt>TreeMap</tt> class, make
  * specific guarantees as to their order; others, like the <tt>HashMap</tt>
  * class, do not.
+ *
+ * Map接口提供了两个集合视图，这使得一个map的内容可以被视为key的集合，值的集合，或一组
+ * key-value的映射。map的顺序被定义为迭代器里返回的顺序。一些map实现，就像TreeMap，
+ * 是有序的，而另一些，则不是，就像HashMap。
  *
  * <p>Note: great care must be exercised if mutable objects are used as map
  * keys.  The behavior of a map is not specified if the value of an object is
@@ -54,6 +62,10 @@ import java.io.Serializable;
  * advised: the <tt>equals</tt> and <tt>hashCode</tt> methods are no longer
  * well defined on such a map.
  *
+ * 注意:如果可变的对象作为map一定要小心。如果一个对象的值改变了，影响了equals比较，当这个对象
+ * 是map的键的时候。一个特殊的禁止情况是不允许map本身作为key.而一个map作为值是允许的，建议
+ * 特别注意: equals和hashCode方法在这样的map中不再好好定义。
+ *
  * <p>All general-purpose map implementation classes should provide two
  * "standard" constructors: a void (no arguments) constructor which creates an
  * empty map, and a constructor with a single argument of type <tt>Map</tt>,
@@ -63,6 +75,11 @@ import java.io.Serializable;
  * enforce this recommendation (as interfaces cannot contain constructors) but
  * all of the general-purpose map implementations in the JDK comply.
  *
+ * 所有通用的map实现类应该提供两个标准的构造器:一个不带参数的构造器，它创建一个空的map,
+ * 另一个带有一个map参数的构造器用来创建一个新的map。这个新map和参数具有一样的key-value影射。
+ * 实际上，后一个构造器允许用户拷贝任务map,生成一个相同的map.没有任务方法来强制这个建议(因为
+ * 接口不能包含构建器)，但是所有JDK里面通用的map实现都遵守了这个建议。
+ *
  * <p>The "destructive" methods contained in this interface, that is, the
  * methods that modify the map on which they operate, are specified to throw
  * <tt>UnsupportedOperationException</tt> if this map does not support the
@@ -71,6 +88,11 @@ import java.io.Serializable;
  * have no effect on the map.  For example, invoking the {@link #putAll(Map)}
  * method on an unmodifiable map may, but is not required to, throw the
  * exception if the map whose mappings are to be "superimposed" is empty.
+ *
+ * 这个接口中包含的破坏性方法，也就是说，能修改他们操作的map的方法。被设计为抛出
+ * UnsupportedOperationException,如果这个map不支持这个操作。如果是这个情况，
+ * 这些方法可以，但是不要求，抛出一个UnsupportedOperationException，如果调用没有
+ * 任何效果在这个map上。例如，在一个不可修改的map上调用putAll方法可以抛出异常，
  *
  * <p>Some map implementations have restrictions on the keys and values they
  * may contain.  For example, some implementations prohibit null keys and
@@ -85,6 +107,13 @@ import java.io.Serializable;
  * throw an exception or it may succeed, at the option of the implementation.
  * Such exceptions are marked as "optional" in the specification for this
  * interface.
+ *
+ * 一些map实现对他们包含的key和value有严格要求。例如，一些实现禁止null的键和值。
+ * 一些对他们的key有严格的要求。试图插入一个不合法的key或值将抛出非检查的异常，
+ * 通常是NullPointerException或ClassCastException。试图查询一个不合法的key
+ * 或值的存在性可能抛出一个异常，或它可能简单地返回false;一些实现是前一个行为，
+ * 一个实现是后一个行为。更常见地，试图操作一个不合法的key或值可能抛出异常或它可能成功，
+ * 取决于具体的实现。这样的异常被标记为"可选的"在这个接口的说明书上。
  *
  * <p>Many methods in Collections Framework interfaces are defined
  * in terms of the {@link Object#equals(Object) equals} method.  For
@@ -103,12 +132,23 @@ import java.io.Serializable;
  * the specified behavior of underlying {@link Object} methods wherever the
  * implementor deems it appropriate.
  *
+ * 在很多集合框架中的方法定义依赖于equals方法。例如，containsKey方法说明说:返回true如果
+ * 并且只有这个map包含一个这个key映射，这个key(key==null?k==null:key.equsls(k))。
+ * 这个说明不应该被解释为用一个非null的参数调用Map.containsKey意味将导致key.equsls(k)被
+ * 调用对任何key.为了实现优化通过equals调用被避免，实现是自由的。例如，首先通过比较两个key的
+ * hashCode.(Object.hashCode说明保证他们两个具有不同的hashCode不可能相等)。更普遍地说，
+ * 不同的Collections框架实现可能自由地利用底层的特殊行为，可以在任务它认为合适的地方。
+ *
  * <p>Some map operations which perform recursive traversal of the map may fail
  * with an exception for self-referential instances where the map directly or
  * indirectly contains itself. This includes the {@code clone()},
  * {@code equals()}, {@code hashCode()} and {@code toString()} methods.
  * Implementations may optionally handle the self-referential scenario, however
  * most current implementations do not do so.
+ *
+ * 一些执行递归遍历map的操作可能失败，因为这个map直接或间接地包含它自己。这包含clone(),equals，
+ * hashCode和toString方法。
+ * 实现可以选择地处理自引用的场景，然而大部分当前的实现不是这样的。
  *
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
