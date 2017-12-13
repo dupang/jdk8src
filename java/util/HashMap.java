@@ -341,6 +341,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Returns x's Class if it is of the form "class C implements
      * Comparable<C>", else null.
+     * 返回一个对象的Class对象，如果这个对象符合 Person implements Comparable<Person>。
+     * getGenericInterfaces()方法返回这个类实现的接口，例如一个类Person。Persion implements A,B,C
+     * 就会返回代表A,B,C的Type[]数组。
+     * ParameterizedType是什么意思呢，就是你的接口是否是泛型的。例如Person implements Comparable<Person>
      */
     static Class<?> comparableClassFor(Object x) {
         if (x instanceof Comparable) {
@@ -364,6 +368,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Returns k.compareTo(x) if x matches kc (k's screened comparable
      * class), else 0.
+     *
+     * 返回k.compareTo(x)的结果，这里的kc就是上面方法返回的Class对象。
      */
     @SuppressWarnings({"rawtypes","unchecked"}) // for cast to Comparable
     static int compareComparables(Class<?> kc, Object k, Object x) {
